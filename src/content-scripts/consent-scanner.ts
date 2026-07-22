@@ -207,7 +207,7 @@ class ConsentScanner {
       }
       this.bannerScanHistory.set(bannerIdentifier, { confidence: confidence.overall, phase });
 
-      if (!confidence.shouldAlert) {
+      if (!confidence.shouldAlert && (deceptivePatterns.length === 0 || confidence.overall < 50)) {
         // Stryker disable next-line all: logging only
         logger.debug('ConsentScanner', 'Low confidence scan, skipping alert', {
           domain: window.location.hostname,
@@ -256,6 +256,8 @@ class ConsentScanner {
             })),
             cmpType: cmpDetection.cmpType,
           });
+          
+          this.highlightDeceptiveBanner(banner);
         } else {
           logger.info('ConsentScanner', 'Compliant cookie banner detected', {
             url: sanitizeUrl(window.location.href),
@@ -744,11 +746,11 @@ class ConsentScanner {
     this.rules = null;
   }
 
-  private showConsentToast(message: string, isViolation: boolean = false, isAccept: boolean = false): void {
+  private showConsentToast(message: string, isViolation: boolean = false, isAccept: boolean = false): HTMLElement {
     const notification = document.createElement('div');
     notification.setAttribute('role', 'alert');
     notification.innerHTML = `
-      <div style="display: flex; align-items: center; gap: 8px;">
+      <div style="display: flex; align-items: center; gap: 8px; padding-right: 20px; position: relative;">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           ${isViolation 
             ? '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line>'
@@ -757,16 +759,17 @@ class ConsentScanner {
             : '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline>'
           }
         </svg>
-        <div>
+        <div style="flex: 1;">
           <div style="font-weight: 600; margin-bottom: 2px;">Privaseer</div>
           <div style="font-size: 12px; opacity: 0.9;">${message}</div>
         </div>
+        <button class="pv-close-btn" style="position: absolute; right: -10px; top: -5px; background: none; border: none; color: white; font-size: 16px; cursor: pointer; padding: 5px; opacity: 0.7;">&times;</button>
       </div>
     `;
 
     notification.style.cssText = `
       position: fixed;
-      bottom: 20px;
+      bottom: ${isViolation ? '200px' : '20px'};
       right: 20px;
       padding: 16px 20px;
       background: ${isViolation ? '#ef4444' : isAccept ? '#10B981' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'};
@@ -780,10 +783,74 @@ class ConsentScanner {
     `;
 
     document.body.appendChild(notification);
-    setTimeout(() => {
-      notification.style.opacity = '0';
-      setTimeout(() => notification.remove(), 300);
-    }, 4000);
+    
+    // Add close button listener
+    const closeBtn = notification.querySelector('.pv-close-btn');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => {
+        notification.style.opacity = '0';
+        setTimeout(() => notification.remove(), 300);
+      });
+    }
+
+    // Only auto-dismiss if it is NOT a violation
+    if (!isViolation) {
+      setTimeout(() => {
+        notification.style.opacity = '0';
+        setTimeout(() => notification.remove(), 300);
+      }, 4000);
+    }
+    
+    return notification;
+  }
+
+  private highlightDeceptiveBanner(banner: Element): void {
+    try {
+      // Add a highly visible red pulsing border to the banner
+      const htmlBanner = banner as HTMLElement;
+      const originalBorder = htmlBanner.style.border;
+      const originalBoxShadow = htmlBanner.style.boxShadow;
+      const originalTransition = htmlBanner.style.transition;
+
+      htmlBanner.style.transition = 'all 0.3s ease-in-out';
+      htmlBanner.style.border = '3px solid #ef4444';
+      htmlBanner.style.boxShadow = '0 0 20px rgba(239, 68, 68, 0.6), inset 0 0 10px rgba(239, 68, 68, 0.2)';
+      
+      // Inject keyframes if not exists
+      if (!document.getElementById('pv-pulse-style')) {
+        const style = document.createElement('style');
+        style.id = 'pv-pulse-style';
+        style.textContent = `
+          @keyframes pv-error-pulse {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+          }
+          .pv-deceptive-banner {
+            animation: pv-error-pulse 2s infinite !important;
+          }
+        `;
+        document.head.appendChild(style);
+      }
+      
+      htmlBanner.classList.add('pv-deceptive-banner');
+
+      // Trigger the existing toast UI with a high-priority warning
+      const toastElement = this.showConsentToast('Deceptive Cookie Banner Detected: Missing or hidden reject options.', true);
+      
+      // Remove highlighting when the user closes the toast
+      const closeBtn = toastElement.querySelector('.pv-close-btn');
+      if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+          htmlBanner.style.border = originalBorder;
+          htmlBanner.style.boxShadow = originalBoxShadow;
+          htmlBanner.style.transition = originalTransition;
+          htmlBanner.classList.remove('pv-deceptive-banner');
+        });
+      }
+    } catch (e) {
+      // Fail silently if styling fails
+    }
   }
 }
 
