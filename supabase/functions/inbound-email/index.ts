@@ -223,9 +223,14 @@ async function forwardEmail(
       total: trackersRemoved,
     });
 
+    let senderName = payload.sender.split('@')[0];
+    const nameMatch = payload.from.match(/^(.*?)\s*<[^>]+>$/);
+    if (nameMatch && nameMatch[1]) {
+      senderName = nameMatch[1].replace(/^["']|["']$/g, '').trim();
+    }
+    senderName = senderName.replace(/[<>]/g, '').trim() || payload.sender.split('@')[0];
+
     if (emailProvider === "resend") {
-      // Extract sender username (part before @) for cleaner display
-      const senderName = payload.from.split('@')[0];
       const emailPayload = {
         from: `${senderName} via Privaseer <forwarded@burner.privaseer.co.uk>`,
         to: targetEmail,
@@ -286,8 +291,6 @@ async function forwardEmail(
       const domain = Deno.env.get("MAILGUN_DOMAIN") || "burner.privaseer.co.uk";
       console.log("Using Mailgun with domain:", domain);
       
-      // Extract sender username (part before @) for cleaner display
-      const senderName = payload.from.split('@')[0];
       const mailgunPayload = new URLSearchParams({
         from: `${senderName} via Privaseer <forwarded@burner.privaseer.co.uk>`,
         to: targetEmail,

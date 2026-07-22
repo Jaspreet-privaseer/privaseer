@@ -9,7 +9,12 @@ export function validateEmail(email: string): ValidationResult {
     return { valid: false, error: 'Email is required and must be a string' };
   }
 
-  const trimmed = email.trim();
+  let trimmed = email.trim();
+
+  const match = trimmed.match(/<([^>]+)>/);
+  if (match && match[1]) {
+    trimmed = match[1].trim();
+  }
 
   if (trimmed.length === 0) {
     return { valid: false, error: 'Email cannot be empty' };
