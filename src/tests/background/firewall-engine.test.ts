@@ -54,6 +54,7 @@ vi.mock('@/utils/tab-manager', () => ({
   tabManager: {
     incrementBlockCount: vi.fn(),
     getBlockCount: vi.fn().mockReturnValue(0),
+    getTab: vi.fn(),
     resetBlockCount: vi.fn(),
     cleanup: vi.fn(),
   },
@@ -317,6 +318,13 @@ describe('FirewallEngine checkPageForTrackers and cleanup', () => {
     emitMock.mockClear();
     broadcastMock.mockClear();
 
+    // clearAllMocks() keeps implementations, so reset the tab lookups this block
+    // depends on: a freshly loaded page with nothing blocked on it yet.
+    (tabManager.getBlockCount as unknown as { mockReturnValue: (value: number) => void })
+      .mockReturnValue(0);
+    (tabManager.getTab as unknown as { mockReturnValue: (value: unknown) => void })
+      .mockReturnValue(undefined);
+
     global.chrome = {
       tabs: {
         get: vi.fn().mockResolvedValue({ url: 'https://site.example/page' }),
@@ -372,6 +380,11 @@ describe('FirewallEngine checkPageForTrackers and cleanup', () => {
   it('emits clean-site event and adds clean-site alert when no trackers are present', async () => {
     await FirewallEngine.checkPageForTrackers(4, 'https://clean.example/path?utm=1');
 
+    // The verdict is deferred so late-loading trackers are counted first.
+    expect(emitMock).not.toHaveBeenCalledWith('CLEAN_SITE_DETECTED', expect.anything());
+
+    await vi.advanceTimersByTimeAsync(5000);
+
     expect(emitMock).toHaveBeenCalledWith('CLEAN_SITE_DETECTED', {
       domain: 'clean.example',
       tabId: 4,
@@ -385,6 +398,29 @@ describe('FirewallEngine checkPageForTrackers and cleanup', () => {
       })
     );
     expect(broadcastMock).toHaveBeenCalledWith('STATE_UPDATE');
+  });
+
+  it('does not report a site as clean when trackers were blocked on that tab', async () => {
+    (tabManager.getBlockCount as unknown as { mockReturnValue: (value: number) => void })
+      .mockReturnValue(7);
+
+    await FirewallEngine.checkPageForTrackers(4, 'https://tracker-heavy.example/');
+    await vi.advanceTimersByTimeAsync(5000);
+
+    expect(emitMock).not.toHaveBeenCalledWith('CLEAN_SITE_DETECTED', expect.anything());
+    expect(addAlertMock).not.toHaveBeenCalledWith(
+      expect.objectContaining({ message: expect.stringContaining('has no trackers') })
+    );
+  });
+
+  it('abandons the clean-site verdict when the tab navigates away', async () => {
+    (tabManager.getTab as unknown as { mockReturnValue: (value: unknown) => void })
+      .mockReturnValue({ url: 'https://somewhere-else.example/' });
+
+    await FirewallEngine.checkPageForTrackers(4, 'https://clean.example/path');
+    await vi.advanceTimersByTimeAsync(5000);
+
+    expect(emitMock).not.toHaveBeenCalledWith('CLEAN_SITE_DETECTED', expect.anything());
   });
 
   it('handles errors in checkPageForTrackers without throwing', async () => {

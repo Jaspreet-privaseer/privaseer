@@ -590,15 +590,17 @@ function setupMessageHandlers(): void {
       } else {
       const normalizedDomain = normalizeDomain(domain);
       const override = fpOverridesCache.get(normalizedDomain);
-      const effectiveThreshold = override?.threshold ?? FALSE_POSITIVE_FEEDBACK.BASE_THRESHOLD;
       const scanConfidence = normalizeConfidenceScore(result.confidence?.overall);
 
-      if (typeof scanConfidence === 'number' && scanConfidence < effectiveThreshold) {
+      // Only apply the confidence gate when there is a community false-positive
+      // override for this domain. Without an override, trust the content script's
+      // own shouldAlert check — it already filtered low-confidence scans.
+      if (override && typeof scanConfidence === 'number' && scanConfidence < (override.threshold ?? FALSE_POSITIVE_FEEDBACK.BASE_THRESHOLD)) {
         logger.info('ServiceWorker', 'Alert skipped due to domain confidence override', {
           domain: normalizedDomain,
           scanConfidence,
-          threshold: effectiveThreshold,
-          reportCount: override?.reportCount ?? 0,
+          threshold: override.threshold ?? FALSE_POSITIVE_FEEDBACK.BASE_THRESHOLD,
+          reportCount: override.reportCount ?? 0,
         });
       } else {
         // Check if we've already alerted about this domain recently (within 5 minutes)

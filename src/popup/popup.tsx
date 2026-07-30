@@ -835,7 +835,7 @@ export function Popup() {
 
   return (
     <div className="w-full h-[600px] flex flex-col bg-white dark:bg-gray-900">
-      <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+      <div className="flex-shrink-0 px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Shield className="w-5 h-5 text-blue-600 dark:text-blue-400" />
@@ -944,7 +944,7 @@ export function Popup() {
         </div>
       )}
       {activeTab === 'dashboard' && (
-        <div role="tabpanel" id="panel-dashboard" aria-labelledby="tab-dashboard" className="flex-1 flex flex-col min-h-0">
+        <div role="tabpanel" id="panel-dashboard" aria-labelledby="tab-dashboard" className="flex-1 overflow-y-auto min-h-0">
           <div className={`px-6 py-5 ${scoreBg} border-b border-gray-200 dark:border-gray-700`}>
             <CreditScoreMeter creditScore={creditScore} dailyTrackersBlocked={data.privacyScore.daily.trackersBlocked} cleanSitesVisited={data.privacyScore.daily.cleanSitesVisited} />
 
@@ -1057,8 +1057,8 @@ export function Popup() {
             )}
           </div>
 
-          <div className="flex-1 overflow-hidden flex flex-col">
-            <div className="px-6 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex items-center justify-between">
+          <div>
+            <div className="sticky top-0 z-10 px-6 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex items-center justify-between">
               <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Recent Activity</h2>
               {data.alerts.length > 0 && (
                 <button
@@ -1078,9 +1078,9 @@ export function Popup() {
               )}
             </div>
 
-            <div className="flex-1 overflow-y-auto" role="list" aria-label="Recent privacy alerts">
+            <div role="list" aria-label="Recent privacy alerts">
               {data.alerts.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-gray-400 dark:text-gray-500 px-6 text-center">
+                <div className="flex flex-col items-center justify-center py-12 text-gray-400 dark:text-gray-500 px-6 text-center">
                   <CheckCircle2 className="w-12 h-12 mb-3" />
                   <p className="text-sm font-medium">Start browsing to see your privacy insights</p>
                   <p className="text-xs mt-1">Great start! We'll track your privacy health as you browse.</p>

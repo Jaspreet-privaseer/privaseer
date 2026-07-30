@@ -12,12 +12,16 @@ import { getScoringConfig } from './scoring-config';
 
 const RULESET_ID = 'tracker_blocklist';
 const BADGE_UPDATE_DEBOUNCE_MS = 300;
+// Grace period after page load before declaring a site tracker-free, so lazily
+// loaded trackers (ads, beacons injected after `complete`) are counted first.
+const CLEAN_SITE_GRACE_MS = 5000;
 
 export class FirewallEngine {
   private static trackerLists: TrackerLists | null = null;
   private static isInitialized = false;
   private static badgeUpdateTimers = new Map<number, number>();
   private static cleanSiteAlerts = new Map<string, number>(); // Track clean site alerts by domain
+  private static cleanSiteTimers = new Map<number, number>(); // Deferred clean-site checks by tab
   private static trackerAlertCache = new Map<string, number>(); // Track tracker alerts by "tracker:site" key
   private static postConsentViolationCache = new Map<
     string,
@@ -188,17 +192,55 @@ export class FirewallEngine {
         return;
       }
 
-      const data = await Storage.get();
-      const currentTrackersCount = data.privacyScore.daily.trackersBlocked;
+      // Defer the verdict: trackers frequently load after `complete` fires, so an
+      // immediate check would label tracker-heavy sites as clean.
+      const pending = this.cleanSiteTimers.get(tabId);
+      if (pending) {
+        clearTimeout(pending as unknown as number);
+      }
 
+      const timer = setTimeout(() => {
+        this.cleanSiteTimers.delete(tabId);
+        void this.evaluateCleanSite(tabId, url);
+      }, CLEAN_SITE_GRACE_MS);
+
+      this.cleanSiteTimers.set(tabId, timer as unknown as number);
+    } catch (error) {
+      logger.error('FirewallEngine', 'Error scheduling clean site check', toError(error), { tabId, url: sanitizeUrl(url) });
+    }
+  }
+
+  private static async evaluateCleanSite(tabId: number, url: string): Promise<void> {
+    try {
       const urlObj = new URL(url);
       const domain = urlObj.hostname;
 
+      // Only this page's own blocks count. The previous implementation used the
+      // global daily counter, so the first site visited each day was reported as
+      // "has no trackers" even while its trackers were actively being blocked.
+      if (tabManager.getBlockCount(tabId) > 0) {
+        return;
+      }
+
+      // Bail out if the tab has since navigated elsewhere.
+      const currentTab = tabManager.getTab(tabId);
+      if (currentTab?.url) {
+        try {
+          if (new URL(currentTab.url).hostname !== domain) {
+            return;
+          }
+        } catch {
+          return;
+        }
+      }
+
+      const data = await Storage.get();
+
       const hasTrackers = Object.keys(data.trackers).some(
-        tracker => data.trackers[tracker].lastBlocked > Date.now() - 5000
+        tracker => data.trackers[tracker].lastBlocked > Date.now() - CLEAN_SITE_GRACE_MS
       );
 
-      if (!hasTrackers && currentTrackersCount === 0) {
+      if (!hasTrackers) {
         // Check if we've already alerted about this domain recently (within 24 hours)
         const lastAlertTime = this.cleanSiteAlerts.get(domain);
         const now = Date.now();
@@ -382,6 +424,12 @@ export class FirewallEngine {
       clearTimeout(timer as unknown as number);
       this.badgeUpdateTimers.delete(tabId);
     }
+
+    const cleanSiteTimer = this.cleanSiteTimers.get(tabId);
+    if (cleanSiteTimer) {
+      clearTimeout(cleanSiteTimer as unknown as number);
+      this.cleanSiteTimers.delete(tabId);
+    }
   }
 
   static cleanup(): void {
@@ -390,6 +438,11 @@ export class FirewallEngine {
       clearTimeout(timer as unknown as number);
     }
     this.badgeUpdateTimers.clear();
+
+    for (const timer of this.cleanSiteTimers.values()) {
+      clearTimeout(timer as unknown as number);
+    }
+    this.cleanSiteTimers.clear();
 
     for (const entry of this.postConsentViolationCache.values()) {
       if (entry.timeoutId) {
