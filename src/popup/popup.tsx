@@ -67,31 +67,26 @@ function ScoreFactorCard({ icon, label, impact, description }: ScoreFactorCardPr
   const isPositive = impact >= 0;
   return (
     <div
-      className={`flex items-start gap-2.5 p-2.5 rounded-lg border ${
-        isPositive
-          ? 'border-green-100 dark:border-green-900/40 bg-green-50/50 dark:bg-green-900/10'
-          : 'border-red-100 dark:border-red-900/40 bg-red-50/50 dark:bg-red-900/10'
-      }`}
+      className={`flex items-start gap-2.5 p-2.5 rounded-lg border ${isPositive
+        ? 'border-green-100 dark:border-green-900/40 bg-green-50/50 dark:bg-green-900/10'
+        : 'border-red-100 dark:border-red-900/40 bg-red-50/50 dark:bg-red-900/10'
+        }`}
       title={description}
       aria-label={`${label}: ${isPositive ? '+' : ''}${impact} points. ${description}`}
     >
-      <div className={`mt-0.5 flex-shrink-0 ${
-        isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'
-      }`}>
+      <div className={`mt-0.5 flex-shrink-0 ${isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'
+        }`}>
         {icon}
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between">
-          <span className={`text-xs font-semibold ${
-            isPositive ? 'text-green-800 dark:text-green-200' : 'text-red-800 dark:text-red-200'
-          }`}>{label}</span>
-          <span className={`text-xs font-bold ml-1 ${
-            isPositive ? 'text-green-700 dark:text-green-300' : 'text-red-600 dark:text-red-300'
-          }`}>{isPositive ? '+' : ''}{impact}</span>
+          <span className={`text-xs font-semibold ${isPositive ? 'text-green-800 dark:text-green-200' : 'text-red-800 dark:text-red-200'
+            }`}>{label}</span>
+          <span className={`text-xs font-bold ml-1 ${isPositive ? 'text-green-700 dark:text-green-300' : 'text-red-600 dark:text-red-300'
+            }`}>{isPositive ? '+' : ''}{impact}</span>
         </div>
-        <p className={`text-[10px] mt-0.5 ${
-          isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'
-        }`}>{description}</p>
+        <p className={`text-[10px] mt-0.5 ${isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'
+          }`}>{description}</p>
       </div>
     </div>
   );
@@ -107,11 +102,10 @@ interface GamificationBadgeProps {
 function GamificationBadge({ icon, label, earned, tooltip }: GamificationBadgeProps) {
   return (
     <div
-      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold transition-all ${
-        earned
-          ? 'bg-gradient-to-r from-indigo-500/10 to-purple-500/10 dark:from-indigo-500/20 dark:to-purple-500/20 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 animate-badge-appear'
-          : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 border border-gray-200 dark:border-gray-700 opacity-50'
-      }`}
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold transition-all ${earned
+        ? 'bg-gradient-to-r from-indigo-500/10 to-purple-500/10 dark:from-indigo-500/20 dark:to-purple-500/20 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 animate-badge-appear'
+        : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 border border-gray-200 dark:border-gray-700 opacity-50'
+        }`}
       title={tooltip}
       aria-label={`${label} badge${earned ? ' — earned' : ' — not yet earned'}`}
     >
@@ -186,11 +180,11 @@ function CreditScoreMeter({ creditScore, dailyTrackersBlocked, cleanSitesVisited
 
   const contributions = creditScore
     ? [
-        { name: 'Protection', impact: creditScore.factors.protectionConsistency.impact },
-        { name: 'Clean Sites', impact: creditScore.factors.cleanBrowsing.impact },
-        { name: 'High-Risk', impact: creditScore.factors.highRiskExposure.impact },
-        { name: 'Violations', impact: creditScore.factors.violations.impact },
-      ]
+      { name: 'Protection', impact: creditScore.factors.protectionConsistency.impact },
+      { name: 'Clean Sites', impact: creditScore.factors.cleanBrowsing.impact },
+      { name: 'High-Risk', impact: creditScore.factors.highRiskExposure.impact },
+      { name: 'Violations', impact: creditScore.factors.violations.impact },
+    ]
     : [];
 
   const positive = contributions.filter(c => c.impact > 0).sort((a, b) => b.impact - a.impact).slice(0, 2);
@@ -202,9 +196,9 @@ function CreditScoreMeter({ creditScore, dailyTrackersBlocked, cleanSitesVisited
   // Score delta from factor impacts (net effect)
   const totalDelta = creditScore
     ? creditScore.factors.protectionConsistency.impact +
-      creditScore.factors.cleanBrowsing.impact +
-      creditScore.factors.highRiskExposure.impact +
-      creditScore.factors.violations.impact
+    creditScore.factors.cleanBrowsing.impact +
+    creditScore.factors.highRiskExposure.impact +
+    creditScore.factors.violations.impact
     : 0;
 
   // Next tier progress
@@ -253,9 +247,8 @@ function CreditScoreMeter({ creditScore, dailyTrackersBlocked, cleanSitesVisited
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <span className={`text-2xl font-bold ${scoreColors.text}`}>{animatedScore}</span>
             {totalDelta !== 0 && (
-              <span className={`text-[9px] font-semibold ${
-                totalDelta > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'
-              }`}>
+              <span className={`text-[9px] font-semibold ${totalDelta > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'
+                }`}>
                 {totalDelta > 0 ? '+' : ''}{totalDelta} pts
               </span>
             )}
@@ -489,7 +482,7 @@ export function Popup() {
       chrome.runtime.onMessage.removeListener(listener);
       clearInterval(interval);
     };
-     
+
   }, []); // Empty deps - only run once on mount to prevent re-render loop
 
   useEffect(() => {
@@ -540,7 +533,7 @@ export function Popup() {
       const err = toError(error);
       const errorMessage = err.message;
       if (errorMessage.includes('Could not establish connection') ||
-          errorMessage.includes('Receiving end does not exist')) {
+        errorMessage.includes('Receiving end does not exist')) {
         // Stryker disable next-line all: logging only
         logger.debug('Popup', 'Service worker not ready yet');
       } else {
@@ -591,7 +584,7 @@ export function Popup() {
       return;
     }
     void loadMetricsAggregation(metricsPeriod);
-     
+
   }, [activeTab, metricsPeriod]);
 
   const openWelcomeGuide = () => {
@@ -651,7 +644,7 @@ export function Popup() {
       const err = toError(error);
       const errorMessage = err.message;
       if (errorMessage.includes('Could not establish connection') ||
-          errorMessage.includes('Receiving end does not exist')) {
+        errorMessage.includes('Receiving end does not exist')) {
         // Stryker disable next-line all: logging only
         logger.debug('Popup', 'Service worker not ready for toggle');
       } else {
@@ -829,7 +822,7 @@ export function Popup() {
 
   const creditScore = data.creditScore ?? null;
   const currentCreditScore = creditScore?.score ?? CREDIT_SCORE.BASE;
-  
+
   // Background color based on credit score
   const getScoreBg = (score: number) => {
     if (score >= CREDIT_SCORE.LABELS.EXCELLENT) return 'bg-gradient-to-br from-emerald-50 to-green-50 dark:from-gray-900 dark:to-gray-800';
@@ -863,13 +856,12 @@ export function Popup() {
               role="switch"
               aria-checked={data.settings.protectionEnabled}
               aria-label="Toggle tracker protection"
-              className={`p-2 rounded-lg transition-colors ${
-                isTogglingProtection
-                  ? 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
-                  : data.settings.protectionEnabled
+              className={`p-2 rounded-lg transition-colors ${isTogglingProtection
+                ? 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                : data.settings.protectionEnabled
                   ? 'bg-blue-600 dark:bg-blue-500 text-white hover:bg-blue-700 dark:hover:bg-blue-600'
                   : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600'
-              }`}
+                }`}
               title={isTogglingProtection ? 'Processing...' : data.settings.protectionEnabled ? 'Protection Enabled' : 'Protection Paused'}
             >
               {isTogglingProtection ? (
@@ -891,11 +883,10 @@ export function Popup() {
             aria-controls="panel-dashboard"
             onClick={() => setActiveTab('dashboard')}
             onKeyDown={(event) => handleTabKeyDown(event, 'dashboard')}
-            className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-all ${
-              activeTab === 'dashboard'
-                ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm'
-                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-            }`}
+            className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-all ${activeTab === 'dashboard'
+              ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm'
+              : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+              }`}
           >
             <div className="flex items-center justify-center gap-2">
               <Activity className="w-4 h-4" />
@@ -909,11 +900,10 @@ export function Popup() {
             aria-controls="panel-burner"
             onClick={() => setActiveTab('burner')}
             onKeyDown={(event) => handleTabKeyDown(event, 'burner')}
-            className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-all ${
-              activeTab === 'burner'
-                ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm'
-                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-            }`}
+            className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-all ${activeTab === 'burner'
+              ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm'
+              : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+              }`}
           >
             <div className="flex items-center justify-center gap-2">
               <Mail className="w-4 h-4" />
@@ -947,7 +937,7 @@ export function Popup() {
           id="panel-burner"
           aria-labelledby="tab-burner"
         >
-          <BurnerEmailsSection 
+          <BurnerEmailsSection
             onOpenSettings={openSettingsToBurner}
             isActive={true}
           />
@@ -955,161 +945,160 @@ export function Popup() {
       )}
       {activeTab === 'dashboard' && (
         <div role="tabpanel" id="panel-dashboard" aria-labelledby="tab-dashboard" className="flex-1 flex flex-col min-h-0">
-      <div className={`px-6 py-5 ${scoreBg} border-b border-gray-200 dark:border-gray-700`}>
-        <CreditScoreMeter creditScore={creditScore} dailyTrackersBlocked={data.privacyScore.daily.trackersBlocked} cleanSitesVisited={data.privacyScore.daily.cleanSitesVisited} />
+          <div className={`px-6 py-5 ${scoreBg} border-b border-gray-200 dark:border-gray-700`}>
+            <CreditScoreMeter creditScore={creditScore} dailyTrackersBlocked={data.privacyScore.daily.trackersBlocked} cleanSitesVisited={data.privacyScore.daily.cleanSitesVisited} />
 
-        {/* Stats Row */}
-        <div className="mt-4 flex items-center justify-center gap-6 text-sm">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm">
-            <Shield className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-            <span className="font-semibold text-gray-900 dark:text-white">{data.privacyScore.daily.trackersBlocked}</span>
-            <span className="text-gray-600 dark:text-gray-400">prevented today</span>
-          </div>
-          {data.privacyScore.daily.cleanSitesVisited > 0 && (
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm">
-              <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400" />
-              <span className="font-semibold text-gray-900 dark:text-white">{data.privacyScore.daily.cleanSitesVisited}</span>
-              <span className="text-gray-600 dark:text-gray-400">safe sites</span>
+            {/* Stats Row */}
+            <div className="mt-4 flex items-center justify-center gap-6 text-sm">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm">
+                <Shield className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                <span className="font-semibold text-gray-900 dark:text-white">{data.privacyScore.daily.trackersBlocked}</span>
+                <span className="text-gray-600 dark:text-gray-400">prevented today</span>
+              </div>
+              {data.privacyScore.daily.cleanSitesVisited > 0 && (
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm">
+                  <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400" />
+                  <span className="font-semibold text-gray-900 dark:text-white">{data.privacyScore.daily.cleanSitesVisited}</span>
+                  <span className="text-gray-600 dark:text-gray-400">safe sites</span>
+                </div>
+              )}
             </div>
-          )}
-        </div>
 
-        <div className="mt-4 rounded-xl border border-white/70 dark:border-gray-700 bg-white/70 dark:bg-gray-900/40 p-3">
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">Aggregated Analytics</p>
-            <div className="flex items-center gap-1 rounded-lg bg-gray-100 dark:bg-gray-800 p-1">
-              {(['week', 'month', 'all-time'] as const).map((period) => (
+            <div className="mt-4 rounded-xl border border-white/70 dark:border-gray-700 bg-white/70 dark:bg-gray-900/40 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">Aggregated Analytics</p>
+                <div className="flex items-center gap-1 rounded-lg bg-gray-100 dark:bg-gray-800 p-1">
+                  {(['week', 'month', 'all-time'] as const).map((period) => (
+                    <button
+                      key={period}
+                      onClick={() => setMetricsPeriod(period)}
+                      className={`px-2 py-1 text-[11px] rounded-md transition-colors ${metricsPeriod === period
+                        ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400'
+                        : 'text-gray-600 dark:text-gray-400'
+                        }`}
+                    >
+                      {period === 'week' ? 'Week' : period === 'month' ? 'Month' : 'All-time'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {isLoadingAggregation ? (
+                <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">Loading analytics...</p>
+              ) : metricsAggregation ? (
+                <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+                  <div className="rounded-lg bg-gray-50 dark:bg-gray-800 p-2">
+                    <p className="text-gray-500 dark:text-gray-400">Trackers Prevented</p>
+                    <p className="font-semibold text-gray-900 dark:text-white">{metricsAggregation.totalTrackersBlocked}</p>
+                  </div>
+                  <div className="rounded-lg bg-gray-50 dark:bg-gray-800 p-2">
+                    <p className="text-gray-500 dark:text-gray-400">Average Privacy Score</p>
+                    <p className="font-semibold text-gray-900 dark:text-white">{metricsAggregation.averagePrivacyScore}</p>
+                  </div>
+                  <div className="rounded-lg bg-gray-50 dark:bg-gray-800 p-2">
+                    <p className="text-gray-500 dark:text-gray-400">Safe Sites vs Risky Sites</p>
+                    <p className="font-semibold text-gray-900 dark:text-white">
+                      {metricsAggregation.cleanSitesVisited} / {metricsAggregation.nonCompliantSites}
+                    </p>
+                  </div>
+                  <div className="rounded-lg bg-gray-50 dark:bg-gray-800 p-2">
+                    <p className="text-gray-500 dark:text-gray-400">Risky Categories</p>
+                    <p className="font-semibold text-gray-900 dark:text-white">
+                      {Object.entries(metricsAggregation.trackersByCategory)
+                        .sort((a, b) => b[1] - a[1])
+                        .slice(0, 2)
+                        .map(([category]) => category)
+                        .join(', ') || 'No risky activity detected yet'}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                  Start browsing to build your analytics. We'll show trends once we have data.
+                </p>
+              )}
+            </div>
+
+            {/* Consent Activity Section */}
+            {currentTab?.url && (currentTab.url.startsWith('http://') || currentTab.url.startsWith('https://')) && (
+              <div className="mt-4 rounded-xl border border-white/70 dark:border-gray-700 bg-white/70 dark:bg-gray-900/40 p-3">
+                <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">Consent Activity (This Site)</p>
+                <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 rounded-lg p-2 text-xs">
+                  <div>
+                    <p className="text-gray-500 dark:text-gray-400">Last Action</p>
+                    <p className={`font-semibold ${consentAction?.action === 'Rejected' ? 'text-blue-600 dark:text-blue-400' : consentAction?.action === 'Accepted' ? 'text-green-600 dark:text-green-400' : 'text-gray-600 dark:text-gray-400'}`}>
+                      {consentAction ? consentAction.action : 'Unknown'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500 dark:text-gray-400">Violations</p>
+                    {(() => {
+                      try {
+                        const domain = new URL(currentTab.url).hostname;
+                        const siteViolations = data.alerts.filter(a => a.type === 'post_consent_violation' && a.domain === domain).length;
+                        return (
+                          <p className={`font-semibold ${siteViolations > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                            {siteViolations}
+                          </p>
+                        );
+                      } catch (e) {
+                        return <p className="font-semibold text-gray-600">0</p>;
+                      }
+                    })()}
+                  </div>
+                  <div>
+                    <p className="text-gray-500 dark:text-gray-400">Last Event</p>
+                    <p className="font-semibold text-gray-900 dark:text-white">
+                      {consentAction?.timestamp ? new Date(consentAction.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="flex-1 overflow-hidden flex flex-col">
+            <div className="px-6 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Recent Activity</h2>
+              {data.alerts.length > 0 && (
                 <button
-                  key={period}
-                  onClick={() => setMetricsPeriod(period)}
-                  className={`px-2 py-1 text-[11px] rounded-md transition-colors ${
-                    metricsPeriod === period
-                      ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400'
-                      : 'text-gray-600 dark:text-gray-400'
-                  }`}
+                  onClick={async () => {
+                    try {
+                      await chrome.runtime.sendMessage({ type: 'CLEAR_ALERTS' });
+                      await loadData();
+                    } catch (error) {
+                      logger.error('Popup', 'Failed to clear alerts', toError(error));
+                    }
+                  }}
+                  className="text-xs text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 font-medium transition-colors"
+                  aria-label="Clear all alerts"
                 >
-                  {period === 'week' ? 'Week' : period === 'month' ? 'Month' : 'All-time'}
+                  Clear All
                 </button>
-              ))}
+              )}
+            </div>
+
+            <div className="flex-1 overflow-y-auto" role="list" aria-label="Recent privacy alerts">
+              {data.alerts.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-gray-400 dark:text-gray-500 px-6 text-center">
+                  <CheckCircle2 className="w-12 h-12 mb-3" />
+                  <p className="text-sm font-medium">Start browsing to see your privacy insights</p>
+                  <p className="text-xs mt-1">Great start! We'll track your privacy health as you browse.</p>
+                </div>
+              ) : (
+                data.alerts.map((alert) => (
+                  <AlertItem
+                    key={alert.id}
+                    alert={alert}
+                    isExpanded={expandedAlerts.has(alert.id)}
+                    onToggleExpanded={() => toggleExpanded(alert.id)}
+                    onReport={openReportDialog}
+                    falsePositiveStatus={falsePositiveStatuses[normalizeDomain(alert.domain)]}
+                  />
+                ))
+              )}
             </div>
           </div>
-
-          {isLoadingAggregation ? (
-            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">Loading analytics...</p>
-          ) : metricsAggregation ? (
-            <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
-              <div className="rounded-lg bg-gray-50 dark:bg-gray-800 p-2">
-                <p className="text-gray-500 dark:text-gray-400">Trackers Prevented</p>
-                <p className="font-semibold text-gray-900 dark:text-white">{metricsAggregation.totalTrackersBlocked}</p>
-              </div>
-              <div className="rounded-lg bg-gray-50 dark:bg-gray-800 p-2">
-                <p className="text-gray-500 dark:text-gray-400">Average Privacy Score</p>
-                <p className="font-semibold text-gray-900 dark:text-white">{metricsAggregation.averagePrivacyScore}</p>
-              </div>
-              <div className="rounded-lg bg-gray-50 dark:bg-gray-800 p-2">
-                <p className="text-gray-500 dark:text-gray-400">Safe vs Risky Sites</p>
-                <p className="font-semibold text-gray-900 dark:text-white">
-                  {metricsAggregation.cleanSitesVisited} / {metricsAggregation.nonCompliantSites}
-                </p>
-              </div>
-              <div className="rounded-lg bg-gray-50 dark:bg-gray-800 p-2">
-                <p className="text-gray-500 dark:text-gray-400">Risky Categories</p>
-                <p className="font-semibold text-gray-900 dark:text-white">
-                  {Object.entries(metricsAggregation.trackersByCategory)
-                    .sort((a, b) => b[1] - a[1])
-                    .slice(0, 2)
-                    .map(([category]) => category)
-                    .join(', ') || 'No risky activity detected yet'}
-                </p>
-              </div>
-            </div>
-          ) : (
-            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-              Start browsing to build your analytics. We'll show trends once we have data.
-            </p>
-          )}
-        </div>
-
-        {/* Consent Activity Section */}
-        {currentTab?.url && (currentTab.url.startsWith('http://') || currentTab.url.startsWith('https://')) && (
-          <div className="mt-4 rounded-xl border border-white/70 dark:border-gray-700 bg-white/70 dark:bg-gray-900/40 p-3">
-            <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">Consent Activity (This Site)</p>
-            <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 rounded-lg p-2 text-xs">
-              <div>
-                <p className="text-gray-500 dark:text-gray-400">Last Action</p>
-                <p className={`font-semibold ${consentAction?.action === 'Rejected' ? 'text-blue-600 dark:text-blue-400' : consentAction?.action === 'Accepted' ? 'text-green-600 dark:text-green-400' : 'text-gray-600 dark:text-gray-400'}`}>
-                  {consentAction ? consentAction.action : 'Unknown'}
-                </p>
-              </div>
-              <div>
-                <p className="text-gray-500 dark:text-gray-400">Violations</p>
-                {(() => {
-                  try {
-                    const domain = new URL(currentTab.url).hostname;
-                    const siteViolations = data.alerts.filter(a => a.type === 'post_consent_violation' && a.domain === domain).length;
-                    return (
-                      <p className={`font-semibold ${siteViolations > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
-                        {siteViolations}
-                      </p>
-                    );
-                  } catch (e) {
-                    return <p className="font-semibold text-gray-600">0</p>;
-                  }
-                })()}
-              </div>
-              <div>
-                <p className="text-gray-500 dark:text-gray-400">Last Event</p>
-                <p className="font-semibold text-gray-900 dark:text-white">
-                  {consentAction?.timestamp ? new Date(consentAction.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-'}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div className="flex-1 overflow-hidden flex flex-col">
-        <div className="px-6 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Recent Activity</h2>
-          {data.alerts.length > 0 && (
-            <button
-              onClick={async () => {
-                try {
-                  await chrome.runtime.sendMessage({ type: 'CLEAR_ALERTS' });
-                  await loadData();
-                } catch (error) {
-                  logger.error('Popup', 'Failed to clear alerts', toError(error));
-                }
-              }}
-              className="text-xs text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 font-medium transition-colors"
-              aria-label="Clear all alerts"
-            >
-              Clear All
-            </button>
-          )}
-        </div>
-
-        <div className="flex-1 overflow-y-auto" role="list" aria-label="Recent privacy alerts">
-          {data.alerts.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-gray-400 dark:text-gray-500 px-6 text-center">
-              <CheckCircle2 className="w-12 h-12 mb-3" />
-              <p className="text-sm font-medium">Start browsing to see your privacy insights</p>
-              <p className="text-xs mt-1">Great start! We'll track your privacy health as you browse.</p>
-            </div>
-          ) : (
-            data.alerts.map((alert) => (
-                <AlertItem
-                key={alert.id}
-                alert={alert}
-                isExpanded={expandedAlerts.has(alert.id)}
-                  onToggleExpanded={() => toggleExpanded(alert.id)}
-                  onReport={openReportDialog}
-                  falsePositiveStatus={falsePositiveStatuses[normalizeDomain(alert.domain)]}
-              />
-            ))
-          )}
-        </div>
-      </div>
         </div>
       )}
 

@@ -252,9 +252,90 @@ export function BurnerEmailsSection({ onOpenSettings }: BurnerEmailsSectionProps
         <BurnerEmailDisabled onOpenSettings={onOpenSettings} />
       )}
 
+      {/* Email configuration section - only visible when feature is enabled */}
+      {isFeatureEnabled && (
+        <div className="mb-4 p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
+        <div className="flex items-start gap-3 mb-3">
+          <div className="flex-shrink-0">
+            <Mail className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">
+              Forwarding Email Address
+            </h4>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">
+              Emails sent to your burner addresses will be forwarded to this address. Your email is stored locally and never shared.
+            </p>
+            
+            {realEmail && (
+              <div className="mb-3 p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                <p className="text-xs text-gray-600 dark:text-gray-400">
+                  Current: <span className="font-mono text-gray-900 dark:text-white">{maskEmail(realEmail)}</span>
+                </p>
+              </div>
+            )}
 
+            <div className="space-y-2">
+              <input
+                type="email"
+                value={realEmailInput}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setRealEmailInput(val);
+                  if (val.trim().length === 0) {
+                    setRealEmailError(null);
+                  } else {
+                    const result = validateEmail(val.trim());
+                    setRealEmailError(result.valid ? null : (result.error || 'Invalid email format'));
+                  }
+                }}
+                placeholder="your.email@example.com"
+                className={`w-full px-3 py-2 text-sm border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-all ${
+                  !isFeatureEnabled
+                    ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 border-gray-200 dark:border-gray-600 cursor-not-allowed'
+                    : realEmailError
+                    ? 'border-red-300 dark:border-red-600'
+                    : 'border-gray-300 dark:border-gray-600'
+                }`}
+                disabled={isSavingRealEmail || !isFeatureEnabled}
+                aria-disabled={!isFeatureEnabled}
+                aria-invalid={!!realEmailError}
+                aria-describedby={realEmailError ? 'email-validation-error' : undefined}
+              />
+              {realEmailError && (
+                <p id="email-validation-error" className="text-xs text-red-600 dark:text-red-400 transition-opacity" role="alert">{realEmailError}</p>
+              )}
+              <button
+                onClick={handleSaveRealEmail}
+                disabled={isSavingRealEmail || !isFeatureEnabled || realEmailInput.trim() === (realEmail || '') || !!realEmailError || realEmailInput.trim().length === 0}
+                className="w-full px-4 py-2 text-sm font-medium text-white bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg transition-colors"
+                aria-disabled={!isFeatureEnabled}
+              >
+                {isSavingRealEmail ? 'Saving...' : realEmail ? 'Update Email' : 'Save Email'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      )}
 
-
+      {isFeatureEnabled && !realEmail && (
+        <div className="mb-4 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0">
+              <Mail className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h4 className="text-sm font-semibold text-amber-900 dark:text-amber-200 mb-1">
+                Forwarding Email Not Configured
+              </h4>
+              <p className="text-xs text-amber-800 dark:text-amber-300">
+                To receive emails at your burner addresses, configure your forwarding email address above or in settings.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {emails.length === 0 ? (
         <div className={`text-center py-8 px-4 rounded-xl border ${

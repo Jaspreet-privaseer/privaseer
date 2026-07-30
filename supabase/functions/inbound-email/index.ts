@@ -428,7 +428,7 @@ Deno.serve(async (req: Request) => {
     console.log("Request Headers:", Object.fromEntries(req.headers.entries()));
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const emailProvider = Deno.env.get("EMAIL_PROVIDER") || "resend";
@@ -436,7 +436,7 @@ Deno.serve(async (req: Request) => {
 
     console.log("Configuration check:");
     console.log("  SUPABASE_URL:", supabaseUrl ? "✓ Set" : "✗ Missing");
-    console.log("  SUPABASE_ANON_KEY:", supabaseKey ? "✓ Set" : "✗ Missing");
+    console.log("  SUPABASE_SERVICE_ROLE_KEY:", supabaseKey ? "✓ Set" : "✗ Missing");
     console.log("  EMAIL_PROVIDER:", emailProvider);
     console.log("  EMAIL_API_KEY:", emailApiKey ? "✓ Set (length: " + emailApiKey.length + ")" : "✗ Missing");
 
