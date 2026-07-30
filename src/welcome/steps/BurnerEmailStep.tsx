@@ -4,7 +4,7 @@ import type { StepContentProps } from './types';
 const featureCards = [
   {
     title: 'Instant Forwarding',
-    description: 'Aliases deliver to your real inbox immediately with end-to-end encryption.',
+    description: 'Aliases deliver to your real inbox immediately, with tracking pixels and links stripped first.',
     icon: ShieldPlus,
   },
   {
@@ -39,7 +39,7 @@ export function BurnerEmailStep({
         </h2>
         <p className={`text-base max-w-3xl ${subtitle}`}>
           Generate privacy-first aliases, forward them to your real inbox, and revoke access the
-          moment a company violates trust. Nothing ever touches our servers unencrypted.
+          moment a company violates trust. Data is encrypted in transit using HTTPS.
         </p>
       </header>
 

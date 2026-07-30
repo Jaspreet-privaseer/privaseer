@@ -838,7 +838,7 @@ export function SettingsPage({
                       ? 'text-gray-400 dark:text-gray-500'
                       : 'text-gray-600 dark:text-gray-400'
                   }`}>
-                    Emails sent to your burner addresses will be forwarded to this address. Your email is stored locally and never shared.
+                    Emails sent to your burner addresses will be forwarded to this address. Your email is stored securely and only used to route your burner mail.
                   </p>
                   
                   {!isBurnerEmailEnabled && (

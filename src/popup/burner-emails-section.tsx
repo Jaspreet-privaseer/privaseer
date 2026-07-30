@@ -264,7 +264,7 @@ export function BurnerEmailsSection({ onOpenSettings }: BurnerEmailsSectionProps
               Forwarding Email Address
             </h4>
             <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">
-              Emails sent to your burner addresses will be forwarded to this address. Your email is stored locally and never shared.
+              Emails sent to your burner addresses will be forwarded to this address. Your email is stored securely and only used to route your burner mail.
             </p>
             
             {realEmail && (
