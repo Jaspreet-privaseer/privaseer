@@ -409,6 +409,7 @@ export function Popup() {
   const [data, setData] = useState<StorageData | null>(null);
   const [falsePositiveStatuses, setFalsePositiveStatuses] = useState<Record<string, FalsePositiveStatus>>({});
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [expandedAlerts, setExpandedAlerts] = useState<Set<string>>(new Set());
   const [showSuccessBanner, setShowSuccessBanner] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -528,16 +529,22 @@ export function Popup() {
           setData(response.data);
         }
         setFalsePositiveStatuses(response.falsePositiveStatuses ?? {});
+        setError(null);
+      } else {
+        logger.warn('Popup', 'GET_STATE returned an unsuccessful response', { response });
+        setError('Privaseer could not read its data. Try reopening the popup.');
       }
-    } catch (error) {
-      const err = toError(error);
+    } catch (caught) {
+      const err = toError(caught);
       const errorMessage = err.message;
       if (errorMessage.includes('Could not establish connection') ||
         errorMessage.includes('Receiving end does not exist')) {
         // Stryker disable next-line all: logging only
         logger.debug('Popup', 'Service worker not ready yet');
+        setError('Privaseer’s background service is still starting up.');
       } else {
         logger.error('Popup', 'Failed to load data', err);
+        setError(errorMessage || 'Failed to load data from the background service.');
       }
     } finally {
       setLoading(false);
@@ -739,6 +746,30 @@ export function Popup() {
   }, [shouldAllowStandaloneSettings]);
 
   if (loading || !data) {
+    // Surface a recoverable message rather than spinning forever when the
+    // background service worker cannot be reached. The mount effect keeps
+    // retrying every 2s, so this clears itself once the worker responds.
+    if (error && !loading) {
+      return (
+        <div className="w-full h-[500px] flex flex-col items-center justify-center gap-3 px-6 text-center bg-gray-50 dark:bg-gray-900">
+          <ShieldOff className="w-8 h-8 text-gray-400 dark:text-gray-500" />
+          <p className="text-sm font-semibold text-gray-900 dark:text-white">
+            Privaseer isn&rsquo;t responding
+          </p>
+          <p className="text-xs text-gray-600 dark:text-gray-400">{error}</p>
+          <button
+            onClick={() => {
+              setLoading(true);
+              void loadData();
+            }}
+            className="mt-1 rounded-lg bg-blue-600 dark:bg-blue-500 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      );
+    }
+
     return (
       <div className="w-full h-[500px] flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <Activity className="w-6 h-6 animate-spin text-blue-600 dark:text-blue-400" />

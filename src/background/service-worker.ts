@@ -1394,14 +1394,33 @@ chrome.runtime.onStartup.addListener(async () => {
   await initializeExtension();
 });
 
-chrome.declarativeNetRequest.onRuleMatchedDebug.addListener(async (details) => {
-  if (details.request.tabId > 0) {
-    await FirewallEngine.handleBlockedRequest(
-      details.request.url,
-      details.request.tabId
-    );
-  }
-});
+// `onRuleMatchedDebug` is only exposed to unpacked (developer-mode) extensions.
+// In a packed/Web Store build it is undefined, and touching `.addListener` on it
+// throws at module scope — which aborts service-worker startup before
+// `initializeExtension()` below ever runs, leaving the extension completely dead.
+// Guard it, and fall back to webRequest for packed builds so blocked requests are
+// still counted towards the badge, alerts and privacy score.
+if (chrome.declarativeNetRequest?.onRuleMatchedDebug) {
+  chrome.declarativeNetRequest.onRuleMatchedDebug.addListener(async (details) => {
+    if (details.request.tabId > 0) {
+      await FirewallEngine.handleBlockedRequest(
+        details.request.url,
+        details.request.tabId
+      );
+    }
+  });
+} else if (chrome.webRequest?.onErrorOccurred) {
+  // Requests cancelled by our declarativeNetRequest ruleset surface here as
+  // net::ERR_BLOCKED_BY_CLIENT, giving us the same url + tabId pair.
+  chrome.webRequest.onErrorOccurred.addListener(
+    (details) => {
+      if (details.tabId > 0 && details.error === 'net::ERR_BLOCKED_BY_CLIENT') {
+        void FirewallEngine.handleBlockedRequest(details.url, details.tabId);
+      }
+    },
+    { urls: ['<all_urls>'] }
+  );
+}
 
 chrome.action.onClicked.addListener(() => {
   // Extension icon clicked - popup will open automatically
