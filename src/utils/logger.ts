@@ -44,7 +44,7 @@ class Logger {
       await this.loadLogs();
       await this.cleanup();
       this.initialized = true;
-    } catch (error) {
+    } catch {
       // Silent fail - logger will work with in-memory buffer
       this.initialized = true;
     } finally {
@@ -60,7 +60,7 @@ class Logger {
       if (stored?.logs) {
         this.logBuffer = stored.logs.slice(-MAX_LOGS);
       }
-    } catch (error) {
+    } catch {
       // Silent fail - logger will work with in-memory buffer
     }
   }

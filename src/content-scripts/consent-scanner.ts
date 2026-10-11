@@ -848,7 +848,7 @@ class ConsentScanner {
           htmlBanner.classList.remove('pv-deceptive-banner');
         });
       }
-    } catch (e) {
+    } catch {
       // Fail silently if styling fails
     }
   }

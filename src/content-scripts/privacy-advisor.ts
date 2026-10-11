@@ -154,11 +154,8 @@ class PrivacyAdvisor {
           showBurnerEmail: this.pageHasEmailFields(),
         });
         lastToastTime = Date.now();
-      } else {
-
       }
-    } catch (err) {
-
+    } catch {
       logger.debug('PrivacyAdvisor', 'Site check skipped — background not ready');
     }
   }

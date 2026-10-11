@@ -448,7 +448,7 @@ export function Popup() {
             setConsentAction(result[`consent_action_${domain}`]);
           }
         });
-      } catch (e) {
+      } catch {
         // invalid URL
       }
     }
@@ -1072,7 +1072,7 @@ export function Popup() {
                             {siteViolations}
                           </p>
                         );
-                      } catch (e) {
+                      } catch {
                         return <p className="font-semibold text-gray-600">0</p>;
                       }
                     })()}
