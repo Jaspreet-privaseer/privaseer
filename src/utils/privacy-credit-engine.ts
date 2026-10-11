@@ -69,7 +69,7 @@ export class PrivacyCreditEngine {
         acc.cleanSites += day.cleanSitesVisited;
         acc.violations += day.postConsentViolations;
 
-        const dailyHighRiskPenalty = day.highRiskScore * 2;
+        const dailyHighRiskPenalty = Math.min(day.highRiskScore * 2, CREDIT_SCORE.DAILY_HIGH_RISK_CAP);
         acc.highRiskPenalty += dailyHighRiskPenalty;
 
         return acc;
@@ -94,7 +94,11 @@ export class PrivacyCreditEngine {
       factorsConfig.cleanBrowsingCap
     );
 
-    const highRiskImpact = -totals.highRiskPenalty;
+    const highRiskImpact = -clamp(
+      totals.highRiskPenalty,
+      0,
+      Math.abs(factorsConfig.highRiskCap)
+    );
 
     const violationImpact = -clamp(
       totals.violations * factorsConfig.violationMultiplier,
