@@ -79,6 +79,7 @@ const mockChrome = () => {
       onActivated: {
         addListener: vi.fn(),
       },
+      onRemoved: { addListener: vi.fn() },
     },
     action: {
       setBadgeBackgroundColor: vi.fn().mockResolvedValue(undefined),

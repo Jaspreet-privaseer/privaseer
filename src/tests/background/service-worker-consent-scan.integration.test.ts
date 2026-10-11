@@ -180,6 +180,7 @@ describe('Service Worker CONSENT_SCAN_RESULT integration', () => {
         create: vi.fn(),
         onUpdated: { addListener: vi.fn() },
         onActivated: { addListener: vi.fn() },
+        onRemoved: { addListener: vi.fn() },
       },
       storage: {
         onChanged: { addListener: vi.fn() },

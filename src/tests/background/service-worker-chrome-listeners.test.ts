@@ -190,6 +190,7 @@ const createChromeMock = () =>
       create: vi.fn(),
       onUpdated: { addListener: vi.fn() },
       onActivated: { addListener: vi.fn() },
+      onRemoved: { addListener: vi.fn() },
     },
     storage: {
       onChanged: {

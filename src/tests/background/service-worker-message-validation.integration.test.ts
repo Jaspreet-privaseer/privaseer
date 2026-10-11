@@ -127,6 +127,7 @@ const chromeMock = {
     onActivated: {
       addListener: vi.fn(),
     },
+    onRemoved: { addListener: vi.fn() },
   },
   storage: {
     onChanged: {

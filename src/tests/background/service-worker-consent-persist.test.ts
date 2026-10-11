@@ -210,6 +210,7 @@ describe('Service Worker consent persistence', () => {
         create: vi.fn(),
         onUpdated: { addListener: vi.fn() },
         onActivated: { addListener: vi.fn() },
+        onRemoved: { addListener: vi.fn() },
       },
       storage: {
         onChanged: { addListener: vi.fn() },

@@ -173,6 +173,7 @@ describe('Service Worker tab event handlers', () => {
             tabActivatedListeners.push(listener);
           }),
         },
+        onRemoved: { addListener: vi.fn() },
       },
       storage: {
         onChanged: { addListener: vi.fn() },
