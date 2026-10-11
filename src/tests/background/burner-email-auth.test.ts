@@ -30,6 +30,7 @@ describe('BurnerEmailService auth helpers', () => {
 
   it('attaches JWT authorization header to outbound requests', async () => {
     const token = 'jwt-token';
+    service.supabaseAnonKey = 'test-anon-key';
     service.getValidToken = vi.fn().mockResolvedValue(token);
 
     const fetchMock = vi.fn().mockResolvedValue(new Response('{}', { status: 200 }));
@@ -44,7 +45,7 @@ describe('BurnerEmailService auth helpers', () => {
     const [, init] = fetchMock.mock.calls[0];
     const headers = init!.headers as Headers;
     expect(headers.get('Authorization')).toBe(`Bearer ${token}`);
-    expect(headers.get('apikey')).toBe(service.supabaseAnonKey);
+    expect(headers.get('apikey')).toBe('test-anon-key');
   });
 
   it('retries once when the Supabase function returns 401', async () => {

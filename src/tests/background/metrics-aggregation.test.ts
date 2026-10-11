@@ -24,6 +24,23 @@ describe('MetricsAggregationService', () => {
     ...overrides,
   });
 
+  // aggregateMetrics prepends a live "today" snapshot built from privacyScore.daily
+  const mockStorage = (
+    dailySnapshots: DailyMetricsSnapshot[],
+    trackers: Record<string, unknown> = {},
+    today: { score?: number; trackersBlocked?: number } = {},
+  ) =>
+    vi.spyOn(Storage, 'get').mockResolvedValue({
+      dailySnapshots,
+      trackers,
+      privacyScore: {
+        current: today.score ?? 100,
+        daily: { trackersBlocked: today.trackersBlocked ?? 0, cleanSitesVisited: 0, nonCompliantSites: 0 },
+      },
+      complianceScores: [],
+      burnerEmailStats: { generated: 0, forwarded: 0 },
+    } as any);
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -36,13 +53,10 @@ describe('MetricsAggregationService', () => {
         createMockSnapshot({ date: '2025-01-05', trackersBlocked: 30 }),
       ];
 
-      vi.spyOn(Storage, 'get').mockResolvedValue({
-        dailySnapshots: mockSnapshots,
-        trackers: {
-          'tracker1.com': { domain: 'tracker1.com', blockedCount: 100, category: 'advertising' },
-          'tracker2.com': { domain: 'tracker2.com', blockedCount: 50, category: 'analytics' },
-        },
-      } as any);
+      mockStorage(mockSnapshots, {
+        'tracker1.com': { domain: 'tracker1.com', blockedCount: 100, category: 'advertising' },
+        'tracker2.com': { domain: 'tracker2.com', blockedCount: 50, category: 'analytics' },
+      }, { score: 85 });
 
       const result = await MetricsAggregationService.aggregateMetrics('week');
 
@@ -54,17 +68,14 @@ describe('MetricsAggregationService', () => {
     });
 
     it('should aggregate monthly metrics correctly', async () => {
-      const mockSnapshots = Array.from({ length: 30 }, (_, i) =>
+      const mockSnapshots = Array.from({ length: 35 }, (_, i) =>
         createMockSnapshot({
           date: `2025-01-${String(i + 1).padStart(2, '0')}`,
           trackersBlocked: 10,
         })
       );
 
-      vi.spyOn(Storage, 'get').mockResolvedValue({
-        dailySnapshots: mockSnapshots,
-        trackers: {},
-      } as any);
+      mockStorage(mockSnapshots, {}, { trackersBlocked: 10 });
 
       const result = await MetricsAggregationService.aggregateMetrics('month');
 
@@ -73,10 +84,7 @@ describe('MetricsAggregationService', () => {
     });
 
     it('should handle empty snapshots gracefully', async () => {
-      vi.spyOn(Storage, 'get').mockResolvedValue({
-        dailySnapshots: [],
-        trackers: {},
-      } as any);
+      mockStorage([]);
 
       const result = await MetricsAggregationService.aggregateMetrics('week');
 
@@ -92,10 +100,7 @@ describe('MetricsAggregationService', () => {
         createMockSnapshot({ privacyScore: 90 }),
       ];
 
-      vi.spyOn(Storage, 'get').mockResolvedValue({
-        dailySnapshots: mockSnapshots,
-        trackers: {},
-      } as any);
+      mockStorage(mockSnapshots, {}, { score: 90 });
 
       const result = await MetricsAggregationService.aggregateMetrics('week');
 
@@ -108,30 +113,20 @@ describe('MetricsAggregationService', () => {
         createMockSnapshot({ complianceScores: [80, 70] }),
       ];
 
-      vi.spyOn(Storage, 'get').mockResolvedValue({
-        dailySnapshots: mockSnapshots,
-        trackers: {},
-      } as any);
+      mockStorage(mockSnapshots);
 
       const result = await MetricsAggregationService.aggregateMetrics('week');
 
       expect(result.averageComplianceScore).toBe(85);
     });
 
-    it('should aggregate trackers by category correctly', async () => {
-      const mockSnapshots = [
-        createMockSnapshot({
-          trackersByCategory: { advertising: 10, analytics: 5 },
-        }),
-        createMockSnapshot({
-          trackersByCategory: { advertising: 15, social: 3 },
-        }),
-      ];
-
-      vi.spyOn(Storage, 'get').mockResolvedValue({
-        dailySnapshots: mockSnapshots,
-        trackers: {},
-      } as any);
+    it('should aggregate trackers by category from all-time tracker totals', async () => {
+      mockStorage([createMockSnapshot()], {
+        'ads1.com': { domain: 'ads1.com', blockedCount: 10, category: 'advertising' },
+        'ads2.com': { domain: 'ads2.com', blockedCount: 15, category: 'advertising' },
+        'stats.com': { domain: 'stats.com', blockedCount: 5, category: 'analytics' },
+        'social.com': { domain: 'social.com', blockedCount: 3, category: 'social' },
+      });
 
       const result = await MetricsAggregationService.aggregateMetrics('week');
 
@@ -143,14 +138,11 @@ describe('MetricsAggregationService', () => {
     });
 
     it('should calculate top blocked domains correctly', async () => {
-      vi.spyOn(Storage, 'get').mockResolvedValue({
-        dailySnapshots: [createMockSnapshot()],
-        trackers: {
-          'tracker1.com': { domain: 'tracker1.com', blockedCount: 100, category: 'advertising' },
-          'tracker2.com': { domain: 'tracker2.com', blockedCount: 50, category: 'analytics' },
-          'tracker3.com': { domain: 'tracker3.com', blockedCount: 75, category: 'social' },
-        },
-      } as any);
+      mockStorage([createMockSnapshot()], {
+        'tracker1.com': { domain: 'tracker1.com', blockedCount: 100, category: 'advertising' },
+        'tracker2.com': { domain: 'tracker2.com', blockedCount: 50, category: 'analytics' },
+        'tracker3.com': { domain: 'tracker3.com', blockedCount: 75, category: 'social' },
+      });
 
       const result = await MetricsAggregationService.aggregateMetrics('week');
 
@@ -166,10 +158,7 @@ describe('MetricsAggregationService', () => {
         createMockSnapshot({ burnerEmailsGenerated: 3, burnerEmailsForwarded: 1 }),
       ];
 
-      vi.spyOn(Storage, 'get').mockResolvedValue({
-        dailySnapshots: mockSnapshots,
-        trackers: {},
-      } as any);
+      mockStorage(mockSnapshots);
 
       const result = await MetricsAggregationService.aggregateMetrics('week');
 
