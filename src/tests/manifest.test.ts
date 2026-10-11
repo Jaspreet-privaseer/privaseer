@@ -23,7 +23,9 @@ describe('manifest security hardening', () => {
   it('should expose only the intended resources via WARS', () => {
     const wars = manifest.web_accessible_resources?.[0];
     expect(wars).toBeTruthy();
-    expect(wars.resources).toEqual(['data/privacy-rules.json']);
+    expect(wars.resources).toEqual(['data/privacy-rules.json', 'data/alternatives.json']);
+    expect(manifest.web_accessible_resources).toHaveLength(2);
+    expect(manifest.web_accessible_resources[1].resources).toEqual(['src/welcome/welcome.html']);
   });
 
   it('should restrict web accessible matches to http/https and avoid <all_urls>', () => {
@@ -32,9 +34,12 @@ describe('manifest security hardening', () => {
     expect(matches).not.toContain('<all_urls>');
   });
 
-  it('should limit host permissions to the Supabase deployment only', () => {
+  // <all_urls> is needed by the webRequest fallback for packed builds.
+  // Pinned here so any further widening is caught; narrowing is still under review.
+  it('should only request the Supabase deployment and <all_urls> as hosts', () => {
     expect(manifest.host_permissions).toEqual([
       'https://llffqxdhpgsqnpzeznaq.supabase.co/*',
+      '<all_urls>',
     ]);
   });
 

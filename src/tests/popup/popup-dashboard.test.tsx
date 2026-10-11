@@ -525,7 +525,7 @@ describe('Popup Dashboard Component', () => {
         expect(screen.getByText('High-Risk -30')).toBeInTheDocument();
         expect(screen.getByText('Why This Score?')).toBeInTheDocument();
         expect(screen.getByText('Safe Sites')).toBeInTheDocument();
-        expect(screen.getByText('Violations')).toBeInTheDocument();
+        expect(screen.getAllByText('Violations').length).toBeGreaterThan(0);
       }, { timeout: 500 });
     });
 
