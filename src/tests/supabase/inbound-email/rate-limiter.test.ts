@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { generateRateLimitResponse, shouldAutoNotify } from "../../../../supabase/functions/inbound-email/rate-limiter";
+import { describe, it, expect, vi } from 'vitest';
+import { checkRateLimit, generateRateLimitResponse, shouldAutoNotify } from "../../../../supabase/functions/inbound-email/rate-limiter";
 
 describe('rate-limiter', () => {
   it('generateRateLimitResponse - paused', () => {
@@ -27,6 +27,51 @@ describe('rate-limiter', () => {
     expect(response.includes("50")).toBe(true);
     expect(response.includes("52")).toBe(true);
     expect(response.includes("per hour")).toBe(true);
+  });
+
+  it('generateRateLimitResponse - check failed', () => {
+    const response = generateRateLimitResponse({ allowed: false, reason: "check_failed" });
+
+    expect(response.includes("temporarily unavailable")).toBe(true);
+  });
+
+  it('checkRateLimit - returns database result', async () => {
+    const supabase = {
+      rpc: vi.fn().mockResolvedValue({
+        data: { allowed: false, reason: "rate_limit", emails_in_last_hour: 51, hourly_limit: 50 },
+        error: null,
+      }),
+    };
+
+    const result = await checkRateLimit(supabase, "burner-1");
+
+    expect(supabase.rpc).toHaveBeenCalledWith("check_rate_limit", {
+      p_burner_email_id: "burner-1",
+      p_hourly_limit: 50,
+    });
+    expect(result).toEqual({ allowed: false, reason: "rate_limit", emailsInLastHour: 51, hourlyLimit: 50 });
+  });
+
+  it('checkRateLimit - blocks when the database returns an error', async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const supabase = {
+      rpc: vi.fn().mockResolvedValue({ data: null, error: { message: "connection refused" } }),
+    };
+
+    const result = await checkRateLimit(supabase, "burner-1");
+
+    expect(result).toEqual({ allowed: false, reason: "check_failed" });
+  });
+
+  it('checkRateLimit - blocks when the database call throws', async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const supabase = {
+      rpc: vi.fn().mockRejectedValue(new Error("timeout")),
+    };
+
+    const result = await checkRateLimit(supabase, "burner-1");
+
+    expect(result).toEqual({ allowed: false, reason: "check_failed" });
   });
 
   it('generateRateLimitResponse - generic', () => {

@@ -33,9 +33,10 @@ export async function checkRateLimit(
       p_hourly_limit: hourlyLimit,
     });
 
+    // Fail closed: if the check itself fails, don't let mail through unlimited
     if (error) {
       console.error('Rate limit check error:', error);
-      return { allowed: true };
+      return { allowed: false, reason: 'check_failed' };
     }
 
     return {
@@ -46,7 +47,7 @@ export async function checkRateLimit(
     };
   } catch (error) {
     console.error('Rate limit check exception:', error);
-    return { allowed: true };
+    return { allowed: false, reason: 'check_failed' };
   }
 }
 
@@ -158,6 +159,10 @@ export async function getRateLimitStats(
 export function generateRateLimitResponse(result: RateLimitResult): string {
   if (result.reason === 'paused') {
     return 'This burner email has been paused due to suspicious activity. Please contact support.';
+  }
+
+  if (result.reason === 'check_failed') {
+    return 'Rate limit check is temporarily unavailable. Please try again later.';
   }
 
   if (result.reason === 'rate_limit') {
