@@ -697,6 +697,7 @@ describe('Service Worker Lifecycle', () => {
   });
 
   it('persists consent state from CONSENT_SCAN_RESULT when meaningful data exists', async () => {
+    storageMock.getTelemetryEnabled.mockResolvedValue(true);
     await loadServiceWorker();
     const consentHandler = messageHandlers.get('CONSENT_SCAN_RESULT');
     expect(typeof consentHandler).toBe('function');

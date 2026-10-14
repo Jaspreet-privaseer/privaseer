@@ -4,6 +4,7 @@ import { SUPABASE } from '@/utils/constants';
 import { logger } from '@/utils/logger';
 import { messageBus } from '@/utils/message-bus';
 import { feedbackTelemetryService } from '@/background/feedback-telemetry-service';
+import { Storage } from '@/background/storage';
 
 type ConsentHandler = (
   data: unknown,
@@ -237,6 +238,31 @@ describe('Service Worker consent persistence', () => {
       text: vi.fn().mockResolvedValue('ok'),
     }) as unknown as typeof fetch;
     vi.mocked(feedbackTelemetryService.getInstallationId).mockResolvedValue('install-123');
+    vi.mocked(Storage.getTelemetryEnabled).mockResolvedValue(true);
+  });
+
+  it('does not send consent state when telemetry is off', async () => {
+    const handler = getConsentHandler();
+    vi.mocked(Storage.getTelemetryEnabled).mockResolvedValue(false);
+
+    const response = await handler(buildResult());
+
+    expect(response).toEqual({ success: true });
+    expect(fetch).not.toHaveBeenCalled();
+    expect(feedbackTelemetryService.getInstallationId).not.toHaveBeenCalled();
+  });
+
+  it('does not send banner-only results when telemetry is off', async () => {
+    const handler = getConsentHandler();
+    vi.mocked(Storage.getTelemetryEnabled).mockResolvedValue(false);
+
+    await handler(
+      buildResult({
+        cmpDetection: { detected: false, cmpType: 'unknown', detectionMethod: 'banner', confidenceScore: 0, consentStatus: 'unknown', cookieNames: [] },
+      })
+    );
+
+    expect(fetch).not.toHaveBeenCalled();
   });
 
   it('skips persistence when no cmp, no banner, and no persisted consent', async () => {

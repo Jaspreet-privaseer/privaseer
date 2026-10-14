@@ -673,11 +673,12 @@ function setupMessageHandlers(): void {
     }
     // Persist consent state to Supabase when we have meaningful consent data
     // Save when: (1) Known CMP detected, OR (2) Cookie banner found, OR (3) Has persisted consent
-    if (
+    // Only sent when the user has opted in to telemetry
+    const hasConsentData =
       result.cmpDetection?.detected ||      // Known CMP detected (OneTrust, Cookiebot, etc.)
       result.hasBanner ||                   // Cookie banner found (even if CMP unknown)
-      result.hasPersistedConsent            // User already made consent choice
-    ) {
+      result.hasPersistedConsent;           // User already made consent choice
+    if (hasConsentData && await Storage.getTelemetryEnabled()) {
       try {
         const installationId = await feedbackTelemetryService.getInstallationId();
 
