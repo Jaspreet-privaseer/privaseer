@@ -45,6 +45,8 @@ describe('Supabase edge function handler contracts', () => {
         /if\s*\(req\.method\s*===\s*"OPTIONS"\)/,
         /validateEmailPayload/,
         /checkRateLimit/,
+        /rateLimitCheck\.reason\s*===\s*"check_failed"/,
+        /status:\s*503/,
         /detectSpamSpike/,
         /handleRateLimitViolation/,
         /forwardEmail\(/,

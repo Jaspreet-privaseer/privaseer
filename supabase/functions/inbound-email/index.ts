@@ -505,6 +505,24 @@ Deno.serve(async (req: Request) => {
 
     const rateLimitCheck = await checkRateLimit(supabase, burnerEmail.id);
 
+    // Check itself failed: return a temporary error so the provider retries later
+    if (rateLimitCheck.reason === "check_failed") {
+      console.error("Rate limit check unavailable, rejecting for retry:", {
+        burnerEmailId: burnerEmail.id,
+      });
+
+      return new Response(
+        JSON.stringify({
+          error: "Rate limit check unavailable",
+          message: generateRateLimitResponse(rateLimitCheck),
+        }),
+        {
+          status: 503,
+          headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "60" },
+        }
+      );
+    }
+
     if (!rateLimitCheck.allowed) {
       console.warn("Rate limit exceeded:", {
         burnerEmail: payload.recipient,
