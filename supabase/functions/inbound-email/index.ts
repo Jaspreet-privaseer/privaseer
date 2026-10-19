@@ -196,7 +196,6 @@ async function forwardEmail(
     console.log("=== FORWARD EMAIL START ===");
     console.log("Email Provider:", emailProvider);
     console.log("API Key Present:", !!apiKey);
-    console.log("API Key Length:", apiKey ? apiKey.length : 0);
     console.log("Payload sender:", maskEmail(payload.sender || payload.from));
     console.log("Payload recipient:", maskEmail(payload.recipient));
 
@@ -260,24 +259,13 @@ async function forwardEmail(
       });
 
       console.log("Resend API Response Status:", response.status);
-      console.log("Resend API Response Headers:", Object.fromEntries(response.headers.entries()));
 
       const responseText = await response.text();
-      console.log("Resend API Response Body:", responseText);
 
       if (!response.ok) {
         console.error("Resend API error - Status:", response.status);
         console.error("Resend API error - Body:", responseText);
         return { success: false, error: `Resend error: ${response.status} - ${responseText}` };
-      }
-
-      let responseData;
-      try {
-        responseData = JSON.parse(responseText);
-        console.log("Resend API Success Response:", responseData);
-      } catch (e) {
-        console.log("Resend API response is not JSON, raw text:", responseText);
-        responseData = { message: responseText };
       }
 
       console.log("=== FORWARD EMAIL SUCCESS ===");
@@ -311,7 +299,6 @@ async function forwardEmail(
 
       console.log("Mailgun API Response Status:", response.status);
       const responseText = await response.text();
-      console.log("Mailgun API Response Body:", responseText);
 
       if (!response.ok) {
         console.error("Mailgun API error - Status:", response.status);
@@ -415,7 +402,6 @@ Deno.serve(async (req: Request) => {
     console.log("=== INBOUND EMAIL FUNCTION START ===");
     console.log("Request Method:", req.method);
     console.log("Request URL:", req.url);
-    console.log("Request Headers:", Object.fromEntries(req.headers.entries()));
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -428,7 +414,7 @@ Deno.serve(async (req: Request) => {
     console.log("  SUPABASE_URL:", supabaseUrl ? "✓ Set" : "✗ Missing");
     console.log("  SUPABASE_SERVICE_ROLE_KEY:", supabaseKey ? "✓ Set" : "✗ Missing");
     console.log("  EMAIL_PROVIDER:", emailProvider);
-    console.log("  EMAIL_API_KEY:", emailApiKey ? "✓ Set (length: " + emailApiKey.length + ")" : "✗ Missing");
+    console.log("  EMAIL_API_KEY:", emailApiKey ? "✓ Set" : "✗ Missing");
 
     if (!emailApiKey) {
       console.error("EMAIL_API_KEY not configured");
