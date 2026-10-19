@@ -1,3 +1,5 @@
+import { maskEmail } from "../shared/log-redaction.ts";
+
 interface RateLimitResult {
   allowed: boolean;
   reason?: string;
@@ -187,7 +189,7 @@ export async function handleRateLimitViolation(
 ): Promise<void> {
   console.warn('Rate limit violation:', {
     burnerEmailId,
-    emailAddress,
+    emailAddress: maskEmail(emailAddress),
     reason: rateLimitResult.reason,
     emailsInLastHour: rateLimitResult.emailsInLastHour,
   });
@@ -216,7 +218,7 @@ export async function handleSpamSpike(
 ): Promise<void> {
   console.warn('Spam spike detected:', {
     burnerEmailId,
-    emailAddress,
+    emailAddress: maskEmail(emailAddress),
     reason: spike.reason,
     emailsLast5Min: spike.emailsLast5Min,
     emailsLast15Min: spike.emailsLast15Min,

@@ -10,6 +10,7 @@ import {
   handleSpamSpike,
 } from "./rate-limiter.ts";
 import { validateEmailPayload, createValidationErrorResponse } from "../shared/input-validation.ts";
+import { maskEmail } from "../shared/log-redaction.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -177,7 +178,7 @@ async function lookupBurnerEmail(supabase: any, emailAddress: string): Promise<B
   if (data.expires_at) {
     const expiresAt = new Date(data.expires_at);
     if (expiresAt < new Date()) {
-      console.log("Burner email expired:", emailAddress);
+      console.log("Burner email expired:", maskEmail(emailAddress));
       return null;
     }
   }
@@ -194,12 +195,10 @@ async function forwardEmail(
   try {
     console.log("=== FORWARD EMAIL START ===");
     console.log("Email Provider:", emailProvider);
-    console.log("Target Email:", targetEmail);
     console.log("API Key Present:", !!apiKey);
     console.log("API Key Length:", apiKey ? apiKey.length : 0);
-    console.log("Payload sender:", payload.sender || payload.from);
-    console.log("Payload recipient:", payload.recipient);
-    console.log("Payload subject:", payload.subject);
+    console.log("Payload sender:", maskEmail(payload.sender || payload.from));
+    console.log("Payload recipient:", maskEmail(payload.recipient));
 
     const htmlContent = payload.bodyHtml || `<p>${payload.bodyPlain || payload.strippedText}</p>`;
     const textContent = payload.bodyPlain || payload.strippedText || '';
@@ -247,12 +246,8 @@ async function forwardEmail(
 
       console.log("Sending to Resend API...");
       console.log("Email payload (sanitized):", {
-        from: emailPayload.from,
-        to: emailPayload.to,
-        subject: emailPayload.subject,
         textLength: emailPayload.text.length,
         htmlLength: emailPayload.html.length,
-        reply_to: emailPayload.reply_to,
       });
 
       const response = await fetch("https://api.resend.com/emails", {
@@ -304,11 +299,6 @@ async function forwardEmail(
       });
 
       console.log("Sending to Mailgun API...");
-      console.log("Mailgun payload (sanitized):", {
-        from: mailgunPayload.get("from"),
-        to: mailgunPayload.get("to"),
-        subject: mailgunPayload.get("subject"),
-      });
 
       const response = await fetch(`https://api.mailgun.net/v3/${domain}/messages`, {
         method: "POST",
@@ -454,10 +444,8 @@ Deno.serve(async (req: Request) => {
     console.log("Parsing email payload...");
     const rawPayload = await parseEmailPayload(req, emailProvider, emailApiKey);
     console.log("Raw payload received:", {
-      recipient: rawPayload.recipient,
-      sender: rawPayload.sender,
-      from: rawPayload.from,
-      subject: rawPayload.subject,
+      recipient: maskEmail(rawPayload.recipient),
+      sender: maskEmail(rawPayload.sender || rawPayload.from),
       hasBodyPlain: !!rawPayload.bodyPlain,
       hasBodyHtml: !!rawPayload.bodyHtml,
     });
@@ -471,18 +459,17 @@ Deno.serve(async (req: Request) => {
     const payload = validation.sanitized!;
 
     console.log("Inbound email received (validated):", {
-      recipient: payload.recipient,
-      from: payload.sender || payload.from,
-      subject: payload.subject,
+      recipient: maskEmail(payload.recipient),
+      from: maskEmail(payload.sender || payload.from),
       bodyPlainLength: payload.bodyPlain?.length || 0,
       bodyHtmlLength: payload.bodyHtml?.length || 0,
     });
 
-    console.log("Looking up burner email:", payload.recipient);
+    console.log("Looking up burner email:", maskEmail(payload.recipient));
     const burnerEmail = await lookupBurnerEmail(supabase, payload.recipient);
 
     if (!burnerEmail) {
-      console.log("Burner email not found or inactive:", payload.recipient);
+      console.log("Burner email not found or inactive:", maskEmail(payload.recipient));
       return new Response(
         JSON.stringify({
           error: "Burner email not found or inactive",
@@ -497,8 +484,7 @@ Deno.serve(async (req: Request) => {
 
     console.log("Burner email found:", {
       id: burnerEmail.id,
-      email_address: burnerEmail.email_address,
-      real_email: burnerEmail.real_email,
+      email_address: maskEmail(burnerEmail.email_address),
       is_active: burnerEmail.is_active,
       expires_at: burnerEmail.expires_at,
     });
@@ -525,7 +511,7 @@ Deno.serve(async (req: Request) => {
 
     if (!rateLimitCheck.allowed) {
       console.warn("Rate limit exceeded:", {
-        burnerEmail: payload.recipient,
+        burnerEmailId: burnerEmail.id,
         reason: rateLimitCheck.reason,
       });
 
@@ -552,7 +538,7 @@ Deno.serve(async (req: Request) => {
 
     if (spamCheck.isSpike) {
       console.warn("Spam spike detected, auto-pausing:", {
-        burnerEmail: payload.recipient,
+        burnerEmailId: burnerEmail.id,
         reason: spamCheck.reason,
       });
 
@@ -576,7 +562,6 @@ Deno.serve(async (req: Request) => {
     }
 
     console.log("=== STARTING EMAIL FORWARD ===");
-    console.log("Forwarding email to:", burnerEmail.real_email);
     console.log("Using provider:", emailProvider);
 
     const forwardResult = await forwardEmail(
@@ -614,8 +599,8 @@ Deno.serve(async (req: Request) => {
     if (forwardResult.success) {
       console.log("=== EMAIL FORWARD SUCCESS ===");
       console.log("Email forwarded successfully", {
+        burnerEmailId: burnerEmail.id,
         trackersRemoved: forwardResult.trackersRemoved || 0,
-        to: burnerEmail.real_email,
       });
       return new Response(
         JSON.stringify({
