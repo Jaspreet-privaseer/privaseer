@@ -199,5 +199,6 @@ export const BURNER_AUTH = {
   TOKEN_REFRESH_BUFFER_MS: 60 * 1000,
   MAX_TOKEN_RETRIES: 2,
   AUTH_ENDPOINT: '/functions/v1/auth-token',
+  VERIFY_ENDPOINT: '/functions/v1/verify-forwarding-email',
   SECRET_STORAGE_KEY: 'installationSecret',
 } as const;

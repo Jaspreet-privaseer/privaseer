@@ -1,6 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { webcrypto } from 'node:crypto';
-import { burnerEmailService } from '@/background/burner-email-service';
+import {
+  burnerEmailService,
+  EMAIL_NOT_VERIFIED_MESSAGE,
+  VerificationError,
+} from '@/background/burner-email-service';
 import type { BurnerEmail } from '@/types';
 import { BURNER_AUTH } from '@/utils/constants';
 
@@ -39,6 +43,9 @@ interface BurnerEmailServiceTestInstance {
   generateEmail(domain: string, url?: string, label?: string): Promise<string>;
   getEmails(forceRefresh?: boolean): Promise<BurnerEmail[]>;
   deleteEmail(emailId: string): Promise<void>;
+  getForwardingVerificationStatus(realEmail: string): Promise<boolean>;
+  sendForwardingVerification(realEmail: string): Promise<{ alreadyVerified: boolean }>;
+  confirmForwardingVerification(realEmail: string, code: string): Promise<void>;
   authorizedFetch: (url: string, initFactory: () => RequestInit, attempt?: number) => Promise<Response>;
 }
 
@@ -442,5 +449,96 @@ describe('BurnerEmailService', () => {
       authorizedFetchSpy.mockRestore();
     });
   });
-});
 
+  describe('generateEmail with an unverified forwarding address', () => {
+    it('explains that the address must be confirmed first', async () => {
+      const spy = vi
+        .spyOn(service as unknown as Record<string, any>, 'authorizedFetch')
+        .mockResolvedValue(
+          jsonResponse({ error: 'email_not_verified', message: 'Confirm your forwarding email.' }, 403),
+        );
+
+      await expect(service.generateEmail('example.com')).rejects.toThrow(EMAIL_NOT_VERIFIED_MESSAGE);
+
+      spy.mockRestore();
+    });
+  });
+
+  describe('forwarding email verification', () => {
+    const sentBody = (spy: { mock: { calls: unknown[][] } }) => {
+      const initFactory = spy.mock.calls[0][1] as () => RequestInit;
+      return JSON.parse(initFactory().body as string);
+    };
+
+    it('asks the server whether the address is verified', async () => {
+      const spy = vi
+        .spyOn(service as unknown as Record<string, any>, 'authorizedFetch')
+        .mockResolvedValue(jsonResponse({ success: true, verified: true }));
+
+      await expect(service.getForwardingVerificationStatus('user@example.com')).resolves.toBe(true);
+      expect(spy.mock.calls[0][0]).toContain('/functions/v1/verify-forwarding-email');
+      expect(sentBody(spy)).toEqual({ action: 'status', realEmail: 'user@example.com' });
+
+      spy.mockRestore();
+    });
+
+    it('treats a missing verified flag as not verified', async () => {
+      const spy = vi
+        .spyOn(service as unknown as Record<string, any>, 'authorizedFetch')
+        .mockResolvedValue(jsonResponse({ success: true }));
+
+      await expect(service.getForwardingVerificationStatus('user@example.com')).resolves.toBe(false);
+
+      spy.mockRestore();
+    });
+
+    it('requests a code and reports when the address was already verified', async () => {
+      const spy = vi
+        .spyOn(service as unknown as Record<string, any>, 'authorizedFetch')
+        .mockResolvedValue(jsonResponse({ success: true, alreadyVerified: true }));
+
+      await expect(service.sendForwardingVerification('user@example.com')).resolves.toEqual({ alreadyVerified: true });
+      expect(sentBody(spy)).toEqual({ action: 'send', realEmail: 'user@example.com' });
+
+      spy.mockRestore();
+    });
+
+    it('submits the code to confirm', async () => {
+      const spy = vi
+        .spyOn(service as unknown as Record<string, any>, 'authorizedFetch')
+        .mockResolvedValue(jsonResponse({ success: true, verified: true }));
+
+      await expect(service.confirmForwardingVerification('user@example.com', '123456')).resolves.toBeUndefined();
+      expect(sentBody(spy)).toEqual({ action: 'confirm', realEmail: 'user@example.com', code: '123456' });
+
+      spy.mockRestore();
+    });
+
+    it('surfaces the server message and retry delay on failures', async () => {
+      const spy = vi
+        .spyOn(service as unknown as Record<string, any>, 'authorizedFetch')
+        .mockResolvedValue(
+          jsonResponse({ error: 'Too many verification requests', reason: 'cooldown', retryAfterSeconds: 42 }, 429),
+        );
+
+      const error = await service.sendForwardingVerification('user@example.com').catch((e: unknown) => e);
+      expect(error).toBeInstanceOf(VerificationError);
+      expect((error as VerificationError).message).toBe('Too many verification requests');
+      expect((error as VerificationError).retryAfterSeconds).toBe(42);
+
+      spy.mockRestore();
+    });
+
+    it('falls back to a generic message when the response is not JSON', async () => {
+      const spy = vi
+        .spyOn(service as unknown as Record<string, any>, 'authorizedFetch')
+        .mockResolvedValue(new Response('<html>bad gateway</html>', { status: 502 }));
+
+      await expect(service.confirmForwardingVerification('user@example.com', '123456')).rejects.toThrow(
+        'Verification failed (HTTP 502)',
+      );
+
+      spy.mockRestore();
+    });
+  });
+});

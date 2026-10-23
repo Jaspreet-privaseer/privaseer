@@ -5,11 +5,22 @@ import { SUPABASE, BURNER_AUTH } from '../utils/constants';
 import { Storage } from './storage';
 import { validateEmail } from '../utils/validation';
 
+export const EMAIL_NOT_VERIFIED_MESSAGE =
+  'Confirm your forwarding email in the Burner Emails tab before creating burner emails.';
+
+export class VerificationError extends Error {
+  constructor(message: string, readonly retryAfterSeconds?: number) {
+    super(message);
+    this.name = 'VerificationError';
+  }
+}
+
 class BurnerEmailService {
   private installationId: string | null = null;
   private supabaseUrl: string = SUPABASE.URL;
   private supabaseAnonKey: string = SUPABASE.ANON_KEY;
   private apiUrl: string;
+  private verifyUrl: string;
   private authUrl: string;
   private cachedToken: string | null = null;
   private tokenExpiry: number = 0;
@@ -20,6 +31,7 @@ class BurnerEmailService {
 
   constructor() {
     this.apiUrl = `${this.supabaseUrl}/functions/v1/generate-burner-email`;
+    this.verifyUrl = `${this.supabaseUrl}${BURNER_AUTH.VERIFY_ENDPOINT}`;
     this.authUrl = `${this.supabaseUrl}${BURNER_AUTH.AUTH_ENDPOINT}`;
   }
 
@@ -215,6 +227,10 @@ class BurnerEmailService {
         throw new Error(`Invalid JSON response from server: ${responseText.substring(0, 100)}`);
       }
 
+      if (response.status === 403 && data.error === 'email_not_verified') {
+        throw new Error(EMAIL_NOT_VERIFIED_MESSAGE);
+      }
+
       if (!response.ok) {
         // Include the detailed message from server validation errors for better debugging
         const errorMsg = data.message 
@@ -250,6 +266,47 @@ class BurnerEmailService {
       logger.error('BurnerEmailService', 'generateEmail FAILED', err, { domain });
       throw new Error(`Failed to generate burner email: ${err.message}`);
     }
+  }
+
+  // Talks to verify-forwarding-email; the server decides what each address is allowed to do
+  private async verificationRequest(
+    body: { action: 'status' | 'send' | 'confirm'; realEmail: string; code?: string },
+  ): Promise<Record<string, unknown>> {
+    const payload = JSON.stringify(body);
+    const response = await this.authorizedFetch(this.verifyUrl, () => ({
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: payload,
+    }));
+
+    let data: Record<string, unknown> = {};
+    try {
+      data = await response.json();
+    } catch {
+      // Non-JSON error body: fall through to the generic message below
+    }
+
+    if (!response.ok || data.success !== true) {
+      const retryAfter = typeof data.retryAfterSeconds === 'number' ? data.retryAfterSeconds : undefined;
+      const message = typeof data.error === 'string' ? data.error : `Verification failed (HTTP ${response.status})`;
+      throw new VerificationError(message, retryAfter);
+    }
+
+    return data;
+  }
+
+  async getForwardingVerificationStatus(realEmail: string): Promise<boolean> {
+    const data = await this.verificationRequest({ action: 'status', realEmail });
+    return data.verified === true;
+  }
+
+  async sendForwardingVerification(realEmail: string): Promise<{ alreadyVerified: boolean }> {
+    const data = await this.verificationRequest({ action: 'send', realEmail });
+    return { alreadyVerified: data.alreadyVerified === true };
+  }
+
+  async confirmForwardingVerification(realEmail: string, code: string): Promise<void> {
+    await this.verificationRequest({ action: 'confirm', realEmail, code });
   }
 
   async getEmails(forceRefresh = false): Promise<BurnerEmail[]> {
