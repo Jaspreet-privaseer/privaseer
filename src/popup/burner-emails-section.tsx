@@ -5,6 +5,7 @@ import { logger } from '../utils/logger';
 import { toError } from '../utils/type-guards';
 import { BurnerEmailDisabled } from './BurnerEmailDisabled';
 import { validateEmail } from '../utils/validation';
+import { ForwardingEmailVerification } from './forwarding-email-verification';
 
 interface BurnerEmailsSectionProps {
   onOpenSettings?: () => void;
@@ -274,6 +275,8 @@ export function BurnerEmailsSection({ onOpenSettings }: BurnerEmailsSectionProps
                 </p>
               </div>
             )}
+
+            <ForwardingEmailVerification email={realEmail} />
 
             <div className="space-y-2">
               <input

@@ -679,5 +679,38 @@ describe('BurnerEmailsSection', () => {
       expect(screen.getByText(/To receive emails at your burner addresses/i)).toBeInTheDocument();
     });
   });
-});
 
+  describe('Forwarding email verification', () => {
+    const mockWith = (verified: boolean) =>
+      mockSendMessage.mockImplementation((message) => {
+        switch (message.type) {
+          case 'GET_BURNER_EMAIL_SETTING':
+            return Promise.resolve({ success: true, enabled: true });
+          case 'GET_BURNER_EMAILS':
+            return Promise.resolve({ success: true, emails: [] });
+          case 'GET_REAL_EMAIL':
+            return Promise.resolve({ success: true, email: 'user@example.com' });
+          case 'GET_FORWARDING_VERIFICATION_STATUS':
+            return Promise.resolve({ success: true, verified, hasEmail: true });
+          default:
+            return Promise.resolve({ success: true });
+        }
+      });
+
+    it('asks the user to confirm an unverified forwarding address', async () => {
+      mockWith(false);
+      render(<BurnerEmailsSection />);
+
+      expect(await screen.findByText('Confirm this address to start forwarding')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Send verification code' })).toBeInTheDocument();
+    });
+
+    it('does not nag when the forwarding address is already verified', async () => {
+      mockWith(true);
+      render(<BurnerEmailsSection />);
+
+      expect(await screen.findByTestId('forwarding-verified')).toBeInTheDocument();
+      expect(screen.queryByText('Confirm this address to start forwarding')).not.toBeInTheDocument();
+    });
+  });
+});

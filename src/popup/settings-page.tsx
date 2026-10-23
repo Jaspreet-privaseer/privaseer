@@ -4,6 +4,7 @@ import { logger } from '../utils/logger';
 import { toError } from '../utils/type-guards';
 import { ThemeManager } from '../utils/theme-manager';
 import { validateEmail } from '../utils/validation';
+import { ForwardingEmailVerification } from './forwarding-email-verification';
 import type { Alert as AlertType, AllSettingsResponse } from '../types';
 
 export type SettingsSection = 'menu' | 'feedback' | 'theme' | 'burner-services' | 'telemetry' | 'about';
@@ -856,6 +857,8 @@ export function SettingsPage({
                       </p>
                     </div>
                   )}
+
+                  {isBurnerEmailEnabled && <ForwardingEmailVerification email={realEmail || null} />}
 
                   <div className="space-y-2">
                     <input
