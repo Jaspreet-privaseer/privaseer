@@ -11,6 +11,7 @@ import {
 } from "./rate-limiter.ts";
 import { validateEmailPayload, createValidationErrorResponse } from "../shared/input-validation.ts";
 import { maskEmail } from "../shared/log-redaction.ts";
+import { verifyWebhookSignature } from "../shared/webhook-signature.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -80,12 +81,13 @@ async function fetchResendEmailContent(
 async function parseEmailPayload(
   req: Request,
   emailProvider: string,
-  emailApiKey: string
+  emailApiKey: string,
+  rawBody?: string
 ): Promise<InboundEmailPayload> {
   const contentType = req.headers.get("content-type") || "";
 
   if (contentType.includes("application/json")) {
-    const jsonPayload = await req.json();
+    const jsonPayload = rawBody !== undefined ? JSON.parse(rawBody) : await req.json();
 
     if (jsonPayload.type === "email.received" && jsonPayload.data) {
       const data = jsonPayload.data;
@@ -427,8 +429,39 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    // Resend signs every webhook; anything unsigned or tampered with must not reach the forwarder
+    let rawBody: string | undefined;
+    if (emailProvider === "resend") {
+      const webhookSecret = Deno.env.get("RESEND_WEBHOOK_SECRET");
+
+      if (!webhookSecret) {
+        console.error("RESEND_WEBHOOK_SECRET not configured");
+        return new Response(
+          JSON.stringify({ error: "Email forwarding not configured" }),
+          {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      rawBody = await req.text();
+      const signature = await verifyWebhookSignature(rawBody, req.headers, webhookSecret);
+
+      if (!signature.valid) {
+        console.warn("Rejected webhook with invalid signature:", signature.reason);
+        return new Response(
+          JSON.stringify({ error: "Invalid webhook signature" }),
+          {
+            status: 401,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+    }
+
     console.log("Parsing email payload...");
-    const rawPayload = await parseEmailPayload(req, emailProvider, emailApiKey);
+    const rawPayload = await parseEmailPayload(req, emailProvider, emailApiKey, rawBody);
     console.log("Raw payload received:", {
       recipient: maskEmail(rawPayload.recipient),
       sender: maskEmail(rawPayload.sender || rawPayload.from),
