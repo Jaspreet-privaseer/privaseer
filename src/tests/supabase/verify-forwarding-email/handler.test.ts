@@ -78,6 +78,30 @@ describe('handleVerificationRequest', () => {
     expect(sendCodeEmail).not.toHaveBeenCalled();
   });
 
+  describe('status', () => {
+    it('reports whether the address is verified for this installation', async () => {
+      const before = await call(request({ action: 'status', realEmail: 'a@example.com' }));
+      expect(await before.json()).toEqual({ success: true, verified: false });
+
+      db.seed({ installation_id: installation, email: 'a@example.com', verified_at: new Date(now).toISOString() });
+      const after = await call(request({ action: 'status', realEmail: 'A@Example.com' }));
+      expect(await after.json()).toEqual({ success: true, verified: true });
+      expect(sendCodeEmail).not.toHaveBeenCalled();
+    });
+
+    it('does not report another installation as verified', async () => {
+      db.seed({ installation_id: 'someone-else', email: 'a@example.com', verified_at: new Date(now).toISOString() });
+      const res = await call(request({ action: 'status', realEmail: 'a@example.com' }));
+      expect((await res.json()).verified).toBe(false);
+    });
+
+    it('returns 503 when the database is unavailable', async () => {
+      db.failNext = 'select';
+      const res = await call(request({ action: 'status', realEmail: 'a@example.com' }));
+      expect(res.status).toBe(503);
+    });
+  });
+
   describe('send', () => {
     it('emails a code to the address and never returns it to the caller', async () => {
       const res = await call(request({ action: 'send', realEmail: 'Person@Example.com' }));

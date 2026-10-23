@@ -1,6 +1,7 @@
 import {
   confirmVerification,
   discardPendingCode,
+  isForwardingVerified,
   startVerification,
 } from "../shared/forwarding-verification.ts";
 import { validateEmail } from "../shared/input-validation.ts";
@@ -67,8 +68,8 @@ export async function handleVerificationRequest(req: Request, deps: Verification
     return json({ error: "Validation error", message: "Request body must be JSON" }, 400);
   }
 
-  if (!body || typeof body !== "object" || (body.action !== "send" && body.action !== "confirm")) {
-    return json({ error: "Validation error", message: "action must be 'send' or 'confirm'" }, 400);
+  if (!body || typeof body !== "object" || (body.action !== "send" && body.action !== "confirm" && body.action !== "status")) {
+    return json({ error: "Validation error", message: "action must be 'send', 'confirm' or 'status'" }, 400);
   }
 
   // Plain addresses only, so the key matches what generate-burner-email stores
@@ -82,6 +83,15 @@ export async function handleVerificationRequest(req: Request, deps: Verification
   }
   const email: string = emailCheck.sanitized;
   const now = deps.now ? deps.now() : Date.now();
+
+  if (body.action === "status") {
+    const state = await isForwardingVerified(deps.supabase, installationId, email);
+    if (state === "error") {
+      console.error("Verification status check failed");
+      return json({ error: "Verification temporarily unavailable" }, 503, { "Retry-After": "30" });
+    }
+    return json({ success: true, verified: state === "verified" }, 200);
+  }
 
   if (body.action === "send") {
     const started = await startVerification(deps.supabase, installationId, email, now);
