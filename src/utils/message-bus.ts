@@ -46,6 +46,9 @@ const VALID_MESSAGE_TYPES = new Set<MessageType>([
   'THEME_CHANGED',
   'GET_REAL_EMAIL',
   'SET_REAL_EMAIL',
+  'GET_FORWARDING_VERIFICATION_STATUS',
+  'SEND_FORWARDING_VERIFICATION',
+  'CONFIRM_FORWARDING_VERIFICATION',
   'GET_ONBOARDING_STATE',
   'SET_ONBOARDING_STEP',
   'COMPLETE_ONBOARDING',
@@ -77,6 +80,8 @@ const payloadValidators: Partial<Record<MessageType, (payload: unknown) => boole
     isObject(data) && typeof (data as { feedbackText?: unknown }).feedbackText === 'string',
   SET_REAL_EMAIL: (data): data is MessageDataMap['SET_REAL_EMAIL'] =>
     isObject(data) && typeof (data as { email?: unknown }).email === 'string' && Boolean((data as { email: string }).email.trim()),
+  CONFIRM_FORWARDING_VERIFICATION: (data): data is MessageDataMap['CONFIRM_FORWARDING_VERIFICATION'] =>
+    isObject(data) && typeof (data as { code?: unknown }).code === 'string' && /^\d{6}$/.test((data as { code: string }).code.trim()),
   SET_THEME: (data): data is MessageDataMap['SET_THEME'] =>
     isObject(data) && ['light', 'dark', 'system'].includes((data as { theme?: string }).theme ?? ''),
   TRACK_EVENT: (data): data is MessageDataMap['TRACK_EVENT'] =>

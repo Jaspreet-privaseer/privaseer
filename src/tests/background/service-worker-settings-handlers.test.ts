@@ -11,6 +11,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { MessageType } from '@/types';
 import { messageBus } from '@/utils/message-bus';
 import { Storage } from '@/background/storage';
+import { burnerEmailService } from '@/background/burner-email-service';
 
 type Handler = (data: unknown, sender?: chrome.runtime.MessageSender) => Promise<unknown>;
 
@@ -167,6 +168,9 @@ vi.mock('@/background/burner-email-service', () => ({
     generateEmail: vi.fn().mockResolvedValue('burner@privaseer.app'),
     getEmails: vi.fn().mockResolvedValue([]),
     deleteEmail: vi.fn().mockResolvedValue(undefined),
+    getForwardingVerificationStatus: vi.fn().mockResolvedValue(true),
+    sendForwardingVerification: vi.fn().mockResolvedValue({ alreadyVerified: false }),
+    confirmForwardingVerification: vi.fn().mockResolvedValue(undefined),
   },
 }));
 
@@ -393,6 +397,88 @@ describe('Service worker settings handlers', () => {
     const result = await handler({ email: 'user@example.com' });
 
     expect(result).toEqual({ success: false, error: 'save failed' });
+  });
+
+  it('GET_FORWARDING_VERIFICATION_STATUS reports the server answer for the saved address', async () => {
+    storageMock.getRealEmail.mockResolvedValueOnce('user@example.com');
+    const handler = getHandler('GET_FORWARDING_VERIFICATION_STATUS');
+    const result = await handler({});
+
+    expect(burnerEmailService.getForwardingVerificationStatus).toHaveBeenCalledWith('user@example.com');
+    expect(result).toEqual({ success: true, verified: true, hasEmail: true });
+  });
+
+  it('GET_FORWARDING_VERIFICATION_STATUS skips the server when no address is saved', async () => {
+    const handler = getHandler('GET_FORWARDING_VERIFICATION_STATUS');
+    const result = await handler({});
+
+    expect(burnerEmailService.getForwardingVerificationStatus).not.toHaveBeenCalled();
+    expect(result).toEqual({ success: true, verified: false, hasEmail: false });
+  });
+
+  it('GET_FORWARDING_VERIFICATION_STATUS returns the failure message', async () => {
+    storageMock.getRealEmail.mockResolvedValueOnce('user@example.com');
+    vi.mocked(burnerEmailService.getForwardingVerificationStatus).mockRejectedValueOnce(new Error('offline'));
+    const handler = getHandler('GET_FORWARDING_VERIFICATION_STATUS');
+
+    expect(await handler({})).toEqual({ success: false, error: 'offline' });
+  });
+
+  it('SEND_FORWARDING_VERIFICATION sends a code to the saved address', async () => {
+    storageMock.getRealEmail.mockResolvedValueOnce('user@example.com');
+    const handler = getHandler('SEND_FORWARDING_VERIFICATION');
+    const result = await handler({});
+
+    expect(burnerEmailService.sendForwardingVerification).toHaveBeenCalledWith('user@example.com');
+    expect(result).toEqual({ success: true, alreadyVerified: false });
+  });
+
+  it('SEND_FORWARDING_VERIFICATION needs a saved address', async () => {
+    const handler = getHandler('SEND_FORWARDING_VERIFICATION');
+    const result = await handler({});
+
+    expect(burnerEmailService.sendForwardingVerification).not.toHaveBeenCalled();
+    expect(result).toEqual({ success: false, error: 'Save your forwarding email first' });
+  });
+
+  it('SEND_FORWARDING_VERIFICATION passes the retry delay back to the popup', async () => {
+    storageMock.getRealEmail.mockResolvedValueOnce('user@example.com');
+    const rateLimited = Object.assign(new Error('Too many verification requests'), { retryAfterSeconds: 42 });
+    vi.mocked(burnerEmailService.sendForwardingVerification).mockRejectedValueOnce(rateLimited);
+    const handler = getHandler('SEND_FORWARDING_VERIFICATION');
+
+    expect(await handler({})).toEqual({
+      success: false,
+      error: 'Too many verification requests',
+      retryAfterSeconds: 42,
+    });
+  });
+
+  it('CONFIRM_FORWARDING_VERIFICATION submits the trimmed code for the saved address', async () => {
+    storageMock.getRealEmail.mockResolvedValueOnce('user@example.com');
+    const handler = getHandler('CONFIRM_FORWARDING_VERIFICATION');
+    const result = await handler({ code: ' 123456 ' });
+
+    expect(burnerEmailService.confirmForwardingVerification).toHaveBeenCalledWith('user@example.com', '123456');
+    expect(result).toEqual({ success: true });
+  });
+
+  it('CONFIRM_FORWARDING_VERIFICATION needs a saved address', async () => {
+    const handler = getHandler('CONFIRM_FORWARDING_VERIFICATION');
+    const result = await handler({ code: '123456' });
+
+    expect(burnerEmailService.confirmForwardingVerification).not.toHaveBeenCalled();
+    expect(result).toEqual({ success: false, error: 'Save your forwarding email first' });
+  });
+
+  it('CONFIRM_FORWARDING_VERIFICATION returns a wrong code error', async () => {
+    storageMock.getRealEmail.mockResolvedValueOnce('user@example.com');
+    vi.mocked(burnerEmailService.confirmForwardingVerification).mockRejectedValueOnce(
+      new Error('Code is wrong or has expired'),
+    );
+    const handler = getHandler('CONFIRM_FORWARDING_VERIFICATION');
+
+    expect(await handler({ code: '000000' })).toEqual({ success: false, error: 'Code is wrong or has expired' });
   });
 
   it('TRACK_EVENT returns failure when telemetry throws', async () => {

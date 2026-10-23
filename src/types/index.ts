@@ -426,6 +426,9 @@ export type MessageType =
   | 'THEME_CHANGED'
   | 'GET_REAL_EMAIL'
   | 'SET_REAL_EMAIL'
+  | 'GET_FORWARDING_VERIFICATION_STATUS'
+  | 'SEND_FORWARDING_VERIFICATION'
+  | 'CONFIRM_FORWARDING_VERIFICATION'
   | 'GET_ONBOARDING_STATE'
   | 'SET_ONBOARDING_STEP'
   | 'COMPLETE_ONBOARDING'
@@ -523,6 +526,9 @@ export interface MessageDataMap {
   SET_TELEMETRY_SETTING: { enabled: boolean };
   GET_REAL_EMAIL: undefined;
   SET_REAL_EMAIL: { email: string };
+  GET_FORWARDING_VERIFICATION_STATUS: undefined;
+  SEND_FORWARDING_VERIFICATION: undefined;
+  CONFIRM_FORWARDING_VERIFICATION: { code: string };
   SET_THEME: { theme: 'light' | 'dark' | 'system' };
   GET_THEME: undefined;
   THEME_CHANGED: { theme: 'light' | 'dark' | 'system' };

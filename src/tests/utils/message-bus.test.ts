@@ -124,6 +124,34 @@ describe('message-bus', () => {
     ).rejects.toThrow('Invalid payload for message type');
   });
 
+  it('only accepts six digit codes for CONFIRM_FORWARDING_VERIFICATION', async () => {
+    for (const code of ['12345', '1234567', 'abcdef', '12 456', '']) {
+      await expect(
+        messageBus.send('CONFIRM_FORWARDING_VERIFICATION', { code })
+      ).rejects.toThrow('Invalid payload for message type');
+    }
+    await expect(
+      messageBus.send('CONFIRM_FORWARDING_VERIFICATION', { code: 123456 } as never)
+    ).rejects.toThrow('Invalid payload for message type');
+  });
+
+  it('routes a valid CONFIRM_FORWARDING_VERIFICATION payload to its handler', async () => {
+    await messageBus.initialize();
+    const handler = vi.fn().mockResolvedValue({ success: true });
+    messageBus.on('CONFIRM_FORWARDING_VERIFICATION', handler);
+
+    const responseSpy = vi.fn();
+    onMessageListener?.(
+      { type: 'CONFIRM_FORWARDING_VERIFICATION', data: { code: '042917' }, requestId: '3', timestamp: Date.now() },
+      {} as chrome.runtime.MessageSender,
+      responseSpy
+    );
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(handler).toHaveBeenCalledWith({ code: '042917' }, expect.anything());
+    expect(responseSpy).toHaveBeenCalledWith({ success: true });
+  });
+
   it('rejects when runtime errors occur', async () => {
     (chrome.runtime as unknown as { sendMessage: unknown }).sendMessage = vi.fn((...args: unknown[]) => {
       chrome.runtime.lastError = { message: 'runtime failure' };

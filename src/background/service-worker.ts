@@ -1028,6 +1028,60 @@ function setupMessageHandlers(): void {
     }
   });
 
+  // Forwarding address verification: the address is always the one saved in Settings, never taken from the caller
+  const verificationFailure = (error: unknown) => {
+    const err = toError(error);
+    const retryAfterSeconds = (error as { retryAfterSeconds?: unknown })?.retryAfterSeconds;
+    return {
+      success: false,
+      error: err.message,
+      ...(typeof retryAfterSeconds === 'number' ? { retryAfterSeconds } : {}),
+    };
+  };
+
+  messageBus.on('GET_FORWARDING_VERIFICATION_STATUS', async () => {
+    try {
+      const email = await Storage.getRealEmail();
+      if (!email) {
+        return { success: true, verified: false, hasEmail: false };
+      }
+      const verified = await burnerEmailService.getForwardingVerificationStatus(email);
+      return { success: true, verified, hasEmail: true };
+    } catch (error) {
+      logger.error('ServiceWorker', 'Failed to check forwarding verification', toError(error));
+      return verificationFailure(error);
+    }
+  });
+
+  messageBus.on('SEND_FORWARDING_VERIFICATION', async () => {
+    try {
+      const email = await Storage.getRealEmail();
+      if (!email) {
+        return { success: false, error: 'Save your forwarding email first' };
+      }
+      const { alreadyVerified } = await burnerEmailService.sendForwardingVerification(email);
+      return { success: true, alreadyVerified };
+    } catch (error) {
+      logger.error('ServiceWorker', 'Failed to send forwarding verification', toError(error));
+      return verificationFailure(error);
+    }
+  });
+
+  messageBus.on('CONFIRM_FORWARDING_VERIFICATION', async (data: unknown) => {
+    try {
+      const { code } = data as { code: string };
+      const email = await Storage.getRealEmail();
+      if (!email) {
+        return { success: false, error: 'Save your forwarding email first' };
+      }
+      await burnerEmailService.confirmForwardingVerification(email, code.trim());
+      return { success: true };
+    } catch (error) {
+      logger.error('ServiceWorker', 'Failed to confirm forwarding verification', toError(error));
+      return verificationFailure(error);
+    }
+  });
+
   messageBus.on('GET_THEME', async () => {
     try {
       const data = await Storage.get();
