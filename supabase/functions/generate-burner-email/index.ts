@@ -2,6 +2,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import * as jose from "npm:jose@5";
+import { isForwardingVerified } from "../shared/forwarding-verification.ts";
 
 type DenoRuntime = {
   env: { get(key: string): string | undefined };
@@ -678,6 +679,30 @@ denoRuntime.serve(async (req: Request) => {
 
       const body = validation.sanitized!;
       // installationId now comes from JWT, so no mismatch check needed
+
+      // Aliases only forward to an address this installation has confirmed with an emailed code
+      const verifiedState = await isForwardingVerified(supabase, body.installationId, body.realEmail);
+      if (verifiedState === "error") {
+        return new Response(
+          JSON.stringify({ error: "Verification check unavailable" }),
+          {
+            status: 503,
+            headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "30" },
+          }
+        );
+      }
+      if (verifiedState === "unverified") {
+        return new Response(
+          JSON.stringify({
+            error: "email_not_verified",
+            message: "Confirm your forwarding email before creating burner emails.",
+          }),
+          {
+            status: 403,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
 
       try {
         await enforceRateLimit(authContext.installationId);

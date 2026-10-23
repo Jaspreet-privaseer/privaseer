@@ -12,6 +12,7 @@ import {
 import { validateEmailPayload, createValidationErrorResponse } from "../shared/input-validation.ts";
 import { maskEmail } from "../shared/log-redaction.ts";
 import { verifyWebhookSignature } from "../shared/webhook-signature.ts";
+import { isForwardingVerified } from "../shared/forwarding-verification.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -35,6 +36,7 @@ interface InboundEmailPayload {
 
 interface BurnerEmailRecord {
   id: string;
+  installation_id: string;
   email_address: string;
   real_email: string;
   is_active: boolean;
@@ -163,7 +165,7 @@ async function lookupBurnerEmail(supabase: any, emailAddress: string): Promise<B
 
   const { data, error } = await supabase
     .from("burner_emails")
-    .select("id, email_address, real_email, is_active, expires_at")
+    .select("id, installation_id, email_address, real_email, is_active, expires_at")
     .eq("email_address", cleanEmail)
     .eq("is_active", true)
     .maybeSingle();
@@ -507,6 +509,33 @@ Deno.serve(async (req: Request) => {
       is_active: burnerEmail.is_active,
       expires_at: burnerEmail.expires_at,
     });
+
+    // Never forward to an address the owner has not confirmed; a failed check is retried by the provider
+    const verifiedState = await isForwardingVerified(supabase, burnerEmail.installation_id, burnerEmail.real_email);
+
+    if (verifiedState === "error") {
+      console.error("Forwarding verification check unavailable, rejecting for retry:", {
+        burnerEmailId: burnerEmail.id,
+      });
+      return new Response(
+        JSON.stringify({ error: "Verification check unavailable" }),
+        {
+          status: 503,
+          headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "60" },
+        }
+      );
+    }
+
+    if (verifiedState === "unverified") {
+      console.warn("Dropping email, forwarding address not verified:", { burnerEmailId: burnerEmail.id });
+      return new Response(
+        JSON.stringify({ success: false, forwarded: false, message: "Forwarding address not verified" }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
 
     const rateLimitCheck = await checkRateLimit(supabase, burnerEmail.id);
 

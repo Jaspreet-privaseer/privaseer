@@ -33,6 +33,20 @@ describe('Supabase edge function handler contracts', () => {
         /log_generation_event/,
         /Missing authorization/,
         /Rate limit exceeded|Hourly burner email limit reached|Daily burner email limit reached/,
+        /isForwardingVerified\(/,
+        /email_not_verified/,
+      ],
+    });
+  });
+
+  it('verify-forwarding-email wires JWT auth, code email and the request handler', async () => {
+    await assertEdgeFunctionContract({
+      functionPath: 'verify-forwarding-email/index.ts',
+      requiredPatterns: [
+        /Deno\.serve\(/,
+        /jwtVerify\(/,
+        /handleVerificationRequest\(/,
+        /api\.resend\.com\/emails/,
       ],
     });
   });
@@ -51,6 +65,8 @@ describe('Supabase edge function handler contracts', () => {
         /handleRateLimitViolation/,
         /forwardEmail\(/,
         /lookupBurnerEmail\(/,
+        /isForwardingVerified\(/,
+        /verifyWebhookSignature\(/,
       ],
     });
   });
