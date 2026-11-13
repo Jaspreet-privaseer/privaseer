@@ -19,11 +19,11 @@ describe('email-sanitizer', () => {
     expect(result.html.includes('width="1"')).toBe(false);
   });
 
-  it('sanitizeEmail - blocks remote images', () => {
+  it('sanitizeEmail - blocks tracking and insecure remote images', () => {
     const html = `
     <html>
       <body>
-        <img src="https://example.com/image.jpg" alt="Test">
+        <img src="http://example.com/image.jpg" alt="Test">
         <img src="https://track.customer.io/pixel.gif">
       </body>
     </html>
@@ -33,6 +33,16 @@ describe('email-sanitizer', () => {
 
     expect(result.trackersRemoved.remoteImages).toBe(2);
     expect(result.html.includes("data-original-src")).toBe(true);
+  });
+
+  it('sanitizeEmail - keeps normal https images such as logos', () => {
+    const html = `<img src="https://cdn.example.com/logo.png" alt="Logo">`;
+
+    const result = sanitizeEmail(html, "");
+
+    expect(result.html.includes('src="https://cdn.example.com/logo.png"')).toBe(true);
+    expect(result.html.includes("Image blocked for privacy")).toBe(false);
+    expect(result.trackersRemoved.remoteImages).toBe(0);
   });
 
   it('sanitizeEmail - removes UTM parameters', () => {
@@ -216,7 +226,8 @@ describe('email-sanitizer', () => {
     const result = sanitizeEmail(html, text);
 
     expect(result.trackersRemoved.trackingPixels >= 1).toBe(true);
-    expect(result.trackersRemoved.remoteImages >= 2).toBe(true);
+    expect(result.trackersRemoved.remoteImages >= 1).toBe(true);
+    expect(result.html.includes('https://example.com/banner.jpg')).toBe(true);
     expect(result.trackersRemoved.trackingLinks >= 2).toBe(true);
 
     expect(result.html.includes("utm_source")).toBe(false);

@@ -113,11 +113,16 @@ async function parseEmailPayload(
           const full = await fetchResendEmailContent(data.email_id, emailApiKey);
           bodyPlain = full.text || "";
           bodyHtml = full.html || "";
+          if (!bodyPlain && !bodyHtml) {
+            console.warn("Resend returned no body for received email", { email_id: data.email_id });
+          }
         } catch (err) {
-          console.error("Failed to fetch full email content from Resend; forwarding without body", {
+          // Don't forward a blank email: fail so Resend retries the webhook.
+          console.error("Failed to fetch full email content from Resend", {
             email_id: data.email_id,
             error: err instanceof Error ? err.message : String(err),
           });
+          throw new Error("Could not fetch email body from Resend");
         }
       }
 

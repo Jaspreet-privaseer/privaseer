@@ -127,6 +127,12 @@ function blockRemoteImages(html: string, stats: SanitizationResult['trackersRemo
         return `<!-- suspicious image blocked: ${src.substring(0, 50)}... -->`;
       }
 
+      // Plain https images (logos, product shots) are kept so the email stays readable.
+      // Insecure http images are still blocked.
+      if (src.startsWith('https://')) {
+        return match;
+      }
+
       blockedCount++;
       return `<img${before}data-original-src="${src}" src="" alt="[Image blocked for privacy]"${after}>`;
     }
