@@ -17,6 +17,7 @@ import { BurnerEmailsSection } from './burner-emails-section';
 import { SettingsPage, type SettingsSection, type SettingsPageProps } from './settings-page';
 import { ThemeManager } from '../utils/theme-manager';
 import { ONBOARDING, CREDIT_SCORE } from '../utils/constants';
+import { getNextTier } from '../utils/score-tier';
 import '../index.css';
 
 type ReportableSettingsPageProps = SettingsPageProps & {
@@ -29,22 +30,6 @@ const ReportableSettingsPage = SettingsPage as (props: ReportableSettingsPagePro
 function normalizeDomain(domain: string): string {
   const normalized = domain.trim().toLowerCase();
   return normalized.startsWith('www.') ? normalized.slice(4) : normalized;
-}
-
-// Helper: compute the next tier threshold and label above the current score
-function getNextTier(score: number): { nextThreshold: number; nextLabel: string; pointsNeeded: number } | null {
-  const tiers = [
-    { threshold: CREDIT_SCORE.LABELS.EXCELLENT, label: 'Excellent' },
-    { threshold: CREDIT_SCORE.LABELS.GOOD, label: 'Good' },
-    { threshold: CREDIT_SCORE.LABELS.FAIR, label: 'Fair' },
-    { threshold: CREDIT_SCORE.LABELS.POOR, label: 'Poor' },
-  ];
-  for (const tier of tiers) {
-    if (score < tier.threshold) {
-      return { nextThreshold: tier.threshold, nextLabel: tier.label, pointsNeeded: tier.threshold - score };
-    }
-  }
-  return null; // Already at the top tier
 }
 
 // Helper: get the hex color for a score (used for SVG strokes)
@@ -203,9 +188,7 @@ function CreditScoreMeter({ creditScore, dailyTrackersBlocked, cleanSitesVisited
 
   // Next tier progress
   const nextTier = getNextTier(score);
-  const tierProgressPercent = nextTier
-    ? Math.max(0, Math.min(100, ((score - (nextTier.nextThreshold - 100)) / 100) * 100))
-    : 100;
+  const tierProgressPercent = nextTier ? nextTier.progressPercent : 100;
 
   // Gamification badges (UI-only, computed from runtime data)
   const isPrivacyGuardian = score >= CREDIT_SCORE.LABELS.EXCELLENT;
@@ -249,7 +232,7 @@ function CreditScoreMeter({ creditScore, dailyTrackersBlocked, cleanSitesVisited
             {totalDelta !== 0 && (
               <span className={`text-[9px] font-semibold ${totalDelta > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'
                 }`}>
-                {totalDelta > 0 ? '+' : ''}{totalDelta} pts
+                {totalDelta > 0 ? '+' : ''}{totalDelta} pts vs {CREDIT_SCORE.BASE}
               </span>
             )}
           </div>
@@ -363,9 +346,9 @@ function CreditScoreMeter({ creditScore, dailyTrackersBlocked, cleanSitesVisited
             />
             <ScoreFactorCard
               icon={<XCircle className="w-3.5 h-3.5" />}
-              label="Violations"
+              label="Banner Violations"
               impact={creditScore.factors.violations.impact}
-              description="Sites ignoring your consent hurt your score"
+              description="Sites with tricky cookie banners hurt your score"
             />
           </div>
         </div>
