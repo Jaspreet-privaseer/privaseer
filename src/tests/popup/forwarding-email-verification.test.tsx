@@ -45,20 +45,19 @@ describe('ForwardingEmailVerification', () => {
     expect(sendMessage).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'SEND_FORWARDING_VERIFICATION' }));
   });
 
-  it('shows nothing when the status cannot be checked', async () => {
+  it('still offers a code when the status cannot be checked', async () => {
     replies.GET_FORWARDING_VERIFICATION_STATUS = { success: false, error: 'offline' };
-    const { container } = render(<ForwardingEmailVerification email="user@example.com" />);
+    render(<ForwardingEmailVerification email="user@example.com" />);
 
-    await waitFor(() => expect(sendMessage).toHaveBeenCalled());
-    expect(container).toBeEmptyDOMElement();
+    expect(await screen.findByRole('button', { name: 'Send verification code' })).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent('offline');
   });
 
-  it('shows nothing when the background does not answer', async () => {
+  it('still offers a code when the background does not answer', async () => {
     sendMessage.mockResolvedValue(undefined);
-    const { container } = render(<ForwardingEmailVerification email="user@example.com" />);
+    render(<ForwardingEmailVerification email="user@example.com" />);
 
-    await waitFor(() => expect(sendMessage).toHaveBeenCalled());
-    expect(container).toBeEmptyDOMElement();
+    expect(await screen.findByRole('button', { name: 'Send verification code' })).toBeInTheDocument();
   });
 
   it('sends a code and then shows the code entry', async () => {

@@ -758,7 +758,12 @@ function setupMessageHandlers(): void {
   // even when generation is disabled, allowing users to view and manage previously created burner emails
   messageBus.on('GET_BURNER_EMAILS', async () => {
     try {
-      const emails = await burnerEmailService.getEmails();
+      const all = await burnerEmailService.getEmails();
+      // Only show aliases that forward to the address saved right now
+      const current = (await Storage.getRealEmail())?.trim().toLowerCase();
+      const emails = current
+        ? all.filter((e) => (e.real_email ?? '').trim().toLowerCase() === current)
+        : all;
       return { success: true, emails };
     } catch (error) {
       logger.error('ServiceWorker', 'Failed to fetch burner emails', toError(error));
@@ -1032,10 +1037,12 @@ function setupMessageHandlers(): void {
   const verificationFailure = (error: unknown) => {
     const err = toError(error);
     const retryAfterSeconds = (error as { retryAfterSeconds?: unknown })?.retryAfterSeconds;
+    const attemptsRemaining = (error as { attemptsRemaining?: unknown })?.attemptsRemaining;
     return {
       success: false,
       error: err.message,
       ...(typeof retryAfterSeconds === 'number' ? { retryAfterSeconds } : {}),
+      ...(typeof attemptsRemaining === 'number' ? { attemptsRemaining } : {}),
     };
   };
 

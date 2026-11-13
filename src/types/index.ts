@@ -595,6 +595,7 @@ export interface BurnerEmail {
   is_active: boolean;
   times_used: number;
   created_at: string;
+  real_email?: string;
 }
 
 export type BurnerEmailError =

@@ -16,6 +16,7 @@ interface VerificationResponse {
   alreadyVerified?: boolean;
   error?: string;
   retryAfterSeconds?: number;
+  attemptsRemaining?: number;
 }
 
 function describeFailure(response: VerificationResponse | undefined, fallback: string): string {
@@ -26,6 +27,13 @@ function describeFailure(response: VerificationResponse | undefined, fallback: s
     const minutes = Math.ceil(response.retryAfterSeconds / 60);
     const wait = response.retryAfterSeconds < 60 ? `${response.retryAfterSeconds} seconds` : `${minutes} minutes`;
     return `${response.error} Try again in about ${wait}.`;
+  }
+  if (typeof response.attemptsRemaining === 'number') {
+    const left = response.attemptsRemaining;
+    if (left === 0) {
+      return `${response.error} No attempts left. Send a new code.`;
+    }
+    return `${response.error} ${left} ${left === 1 ? 'attempt' : 'attempts'} left.`;
   }
   return response.error;
 }
@@ -66,12 +74,15 @@ export function ForwardingEmailVerification({ email }: ForwardingEmailVerificati
         if (response?.success) {
           setStatus(response.verified ? 'verified' : 'unverified');
         } else {
-          setStatus('unknown');
+          // Keep the section visible so the user can still request a code
+          setStatus('unverified');
+          setError(describeFailure(response, 'Could not check the verification status. You can still send a code.'));
         }
       } catch (err) {
         if (cancelled) return;
         logger.error('ForwardingVerification', 'Failed to check verification status', toError(err));
-        setStatus('unknown');
+        setStatus('unverified');
+        setError('Could not check the verification status. You can still send a code.');
       }
     })();
 

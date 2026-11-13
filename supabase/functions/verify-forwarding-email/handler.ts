@@ -142,8 +142,13 @@ export async function handleVerificationRequest(req: Request, deps: Verification
       return json({ error: "Please try again", reason: result.reason }, 409);
     case "too_many_attempts":
       return json({ error: "Too many wrong codes. Request a new code.", reason: result.reason }, 429);
+    case "invalid_code":
+      return json(
+        { error: "Code is wrong or has expired", reason: result.reason, attemptsRemaining: result.attemptsRemaining },
+        400
+      );
     default:
-      // invalid_code, expired, no_pending
+      // expired, no_pending
       return json({ error: "Code is wrong or has expired", reason: result.reason }, 400);
   }
 }

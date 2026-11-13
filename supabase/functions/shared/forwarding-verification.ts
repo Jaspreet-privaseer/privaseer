@@ -33,7 +33,8 @@ export type StartResult =
 
 export type ConfirmResult =
   | { ok: true }
-  | { ok: false; reason: 'no_pending' | 'expired' | 'too_many_attempts' | 'invalid_code' | 'try_again' | 'error' };
+  | { ok: false; reason: 'invalid_code'; attemptsRemaining: number }
+  | { ok: false; reason: 'no_pending' | 'expired' | 'too_many_attempts' | 'try_again' | 'error' };
 
 export type VerifiedState = 'verified' | 'unverified' | 'error';
 
@@ -227,7 +228,7 @@ export async function confirmVerification(
 
   const submitted = await hashCode(code, installationId, email);
   if (submitted !== row.code_hash) {
-    return { ok: false, reason: 'invalid_code' };
+    return { ok: false, reason: 'invalid_code', attemptsRemaining: Math.max(0, MAX_ATTEMPTS - (row.attempts + 1)) };
   }
 
   const verified = await supabase

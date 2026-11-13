@@ -147,6 +147,8 @@ export function BurnerEmailsSection({ onOpenSettings }: BurnerEmailsSectionProps
         
         // Reload feature state to ensure consistency after save
         await loadFeatureState();
+        // The list is filtered by the saved address, so refresh it for the new one
+        await loadEmails();
       } else {
         setRealEmailError(response.error || 'Failed to save email');
         logger.error('BurnerEmails', 'Failed to save real email', new Error(response.error || 'Unknown error'));

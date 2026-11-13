@@ -9,7 +9,7 @@ export const EMAIL_NOT_VERIFIED_MESSAGE =
   'Confirm your forwarding email in the Burner Emails tab before creating burner emails.';
 
 export class VerificationError extends Error {
-  constructor(message: string, readonly retryAfterSeconds?: number) {
+  constructor(message: string, readonly retryAfterSeconds?: number, readonly attemptsRemaining?: number) {
     super(message);
     this.name = 'VerificationError';
   }
@@ -289,7 +289,8 @@ class BurnerEmailService {
     if (!response.ok || data.success !== true) {
       const retryAfter = typeof data.retryAfterSeconds === 'number' ? data.retryAfterSeconds : undefined;
       const message = typeof data.error === 'string' ? data.error : `Verification failed (HTTP ${response.status})`;
-      throw new VerificationError(message, retryAfter);
+      const attemptsRemaining = typeof data.attemptsRemaining === 'number' ? data.attemptsRemaining : undefined;
+      throw new VerificationError(message, retryAfter, attemptsRemaining);
     }
 
     return data;

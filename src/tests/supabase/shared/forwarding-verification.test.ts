@@ -203,7 +203,7 @@ describe('confirmVerification', () => {
   it('rejects a wrong code and counts the attempt', async () => {
     const code = await started();
     const wrong = code === '000000' ? '000001' : '000000';
-    expect(await confirmVerification(db, installation, email, wrong, now + 1000)).toEqual({ ok: false, reason: 'invalid_code' });
+    expect(await confirmVerification(db, installation, email, wrong, now + 1000)).toEqual({ ok: false, reason: 'invalid_code', attemptsRemaining: 4 });
     expect(db.rows[0].attempts).toBe(1);
     expect(db.rows[0].verified_at).toBeNull();
   });
