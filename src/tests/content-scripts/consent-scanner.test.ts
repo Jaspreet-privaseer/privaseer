@@ -485,6 +485,19 @@ describe('ConsentScanner Integration', () => {
         y: 0,
         toJSON: () => ({}),
       }));
+      banner.querySelectorAll('button').forEach((button) => {
+        button.getBoundingClientRect = vi.fn(() => ({
+          width: 100,
+          height: 40,
+          top: 0,
+          left: 0,
+          bottom: 40,
+          right: 100,
+          x: 0,
+          y: 0,
+          toJSON: () => ({}),
+        }));
+      });
     }
   }
 
@@ -723,7 +736,7 @@ describe('ConsentScanner Integration', () => {
 
     it('falls back to keyword banner detection when selector lookup misses', async () => {
       document.body.innerHTML = `
-        <section id="fallback-banner" style="display:block; visibility:visible; opacity:1;">
+        <section id="fallback-banner" style="position:fixed; display:block; visibility:visible; opacity:1;">
           We use cookies to improve your experience.
           <button>Accept All</button>
           <button>Reject All</button>
@@ -744,10 +757,36 @@ describe('ConsentScanner Integration', () => {
         }));
       }
 
+      fallbackBanner?.querySelectorAll('button').forEach((button) => {
+        button.getBoundingClientRect = vi.fn(() => ({
+          width: 80, height: 30, top: 10, left: 10, bottom: 40, right: 90, x: 10, y: 10, toJSON: () => ({}),
+        }));
+      });
+
       await scanner.initialize();
       const detectedBanner = (scanner as unknown as { findCookieBanner: () => Element | null }).findCookieBanner();
 
       expect(detectedBanner).toBe(fallbackBanner);
+    });
+
+    it('ignores static page sections that only mention privacy', async () => {
+      document.body.innerHTML = `
+        <header id="site-header" style="display:block; visibility:visible; opacity:1;">
+          Privacy and cookies information for our readers.
+          <a href="/more">Continue reading</a>
+        </header>
+      `;
+      const header = document.getElementById('site-header');
+      if (header) {
+        header.getBoundingClientRect = vi.fn(() => ({
+          width: 800, height: 80, top: 0, left: 0, bottom: 80, right: 800, x: 0, y: 0, toJSON: () => ({}),
+        }));
+      }
+
+      await scanner.initialize();
+      const detectedBanner = (scanner as unknown as { findCookieBanner: () => Element | null }).findCookieBanner();
+
+      expect(detectedBanner).toBeNull();
     });
 
     it('treats opacity zero banners as not visible', async () => {
@@ -1144,5 +1183,19 @@ describe('ConsentScanner Integration', () => {
       const finalCallCount = (chrome.runtime.sendMessage as ReturnType<typeof vi.fn>).mock.calls.length;
       expect(finalCallCount).toBeLessThanOrEqual(initialCallCount + 2);
     });
+  });
+});
+
+describe('ConsentScanner loose selector false positives', () => {
+  it('ignores a visible [class*="cmp-"] element with no consent buttons', async () => {
+    vi.resetModules();
+    document.body.innerHTML = '<div class="cmp-footer">Privacy and legal links</div>';
+    const el = document.querySelector('.cmp-footer') as HTMLElement;
+    el.getBoundingClientRect = () => ({ width: 300, height: 80, top: 0, left: 0, bottom: 80, right: 300, x: 0, y: 0, toJSON: () => ({}) });
+    const { scanner } = await import('@/content-scripts/consent-scanner');
+    await scanner.initialize();
+    const found = (scanner as unknown as { findCookieBanner: () => Element | null }).findCookieBanner();
+    expect(found).toBeNull();
+    document.body.innerHTML = '';
   });
 });

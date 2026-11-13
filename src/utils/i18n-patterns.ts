@@ -8,8 +8,9 @@ const DEFAULT_LANGUAGE = 'en';
 
 const BUTTON_PATTERNS: Record<string, PatternSet> = {
   en: {
-    accept: ['accept all', 'accept cookies', 'allow all', 'agree', 'i accept', 'consent', 'ok', 'got it', 'continue'],
+    accept: ['accept', 'accept all', 'accept cookies', 'allow all', 'agree', 'i accept', 'consent', 'ok', 'got it', 'continue'],
     reject: [
+      'reject',
       'reject all',
       'reject cookies',
       'decline all',

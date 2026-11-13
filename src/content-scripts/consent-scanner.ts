@@ -465,9 +465,15 @@ class ConsentScanner {
 
     for (const selector of this.rules.cookieBannerSelectors) {
       try {
-        const element = document.querySelector(selector);
-        if (element && this.isVisible(element)) {
-          return element;
+        // Loose selectors (cmp-, ats-, aria-label privacy) match page chrome too, so check each hit
+        for (const element of document.querySelectorAll(selector)) {
+          if (
+            this.isVisible(element) &&
+            this.getElementText(element).length < CONSENT_BANNER.MAX_TEXT_LENGTH &&
+            this.hasConsentButtons(element)
+          ) {
+            return element;
+          }
         }
       } catch {
         continue;
@@ -480,13 +486,34 @@ class ConsentScanner {
       if (
         this.containsConsentKeywords(text) &&
         text.length < CONSENT_BANNER.MAX_TEXT_LENGTH &&
-        this.isVisible(element)
+        this.isVisible(element) &&
+        this.looksLikeBannerContainer(element)
       ) {
         return element;
       }
     }
 
     return null;
+  }
+
+  // Keyword matches alone also hit headers, ad slots and footers that mention privacy, so the
+  // generic fallback only accepts overlays or dialogs that carry an accept/reject style button
+  private looksLikeBannerContainer(element: Element): boolean {
+    const role = element.getAttribute('role')?.toLowerCase() ?? '';
+    const isDialog = role.includes('dialog') || element.getAttribute('aria-modal') === 'true';
+    if (!isDialog && !this.isOverlay(element)) {
+      return false;
+    }
+
+    return this.hasConsentButtons(element);
+  }
+
+  private hasConsentButtons(element: Element): boolean {
+    const patterns = getLocalizedPatterns(detectPageLanguage());
+    return (
+      this.findButtonsByPatterns(element, patterns.accept).length > 0 ||
+      this.findButtonsByPatterns(element, patterns.reject).length > 0
+    );
   }
 
   private checkCompliance(
