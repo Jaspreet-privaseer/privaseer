@@ -27,8 +27,8 @@ function getLabel(score: number): CreditScoreLabel {
 function getTrend(current: number, previous?: number): ScoreTrend {
   if (previous === undefined) return 'stable';
   const delta = current - previous;
-  if (delta > 10) return 'improving';
-  if (delta < -10) return 'declining';
+  if (delta > CREDIT_SCORE.TREND_THRESHOLD) return 'improving';
+  if (delta < -CREDIT_SCORE.TREND_THRESHOLD) return 'declining';
   return 'stable';
 }
 
@@ -45,7 +45,7 @@ export class PrivacyCreditEngine {
   /**
    * Calculate credit score from daily metrics.
    * @param metrics Array of daily credit metrics (last 30 days)
-   * @param previousScore Optional previous score for trend calculation
+   * @param previousScore Optional baseline score for the trend (the score from the last 7 days)
    */
   static calculateScore(
     metrics: DailyCreditMetrics[],

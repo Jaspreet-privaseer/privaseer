@@ -23,6 +23,9 @@ export const CREDIT_SCORE = {
 
   DAILY_HIGH_RISK_CAP: 30,
 
+  // Score change (in points) needed before the trend reads improving or declining
+  TREND_THRESHOLD: 30,
+
   CLEAN_SITE_TRACKER_MAX: 3,
   METRICS_RETENTION_DAYS: 30,
 

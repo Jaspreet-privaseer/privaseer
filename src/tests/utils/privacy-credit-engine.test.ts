@@ -252,9 +252,15 @@ describe('PrivacyCreditEngine', () => {
       expect(PrivacyCreditEngine.calculateTrend(545, 550)).toBe('stable');
     });
 
-    it('treats exact +/-10 deltas as stable boundaries', () => {
-      expect(PrivacyCreditEngine.calculateTrend(560, 550)).toBe('stable');
-      expect(PrivacyCreditEngine.calculateTrend(540, 550)).toBe('stable');
+    it('treats exact +/-30 deltas as stable boundaries', () => {
+      expect(PrivacyCreditEngine.calculateTrend(580, 550)).toBe('stable');
+      expect(PrivacyCreditEngine.calculateTrend(520, 550)).toBe('stable');
+      expect(PrivacyCreditEngine.calculateTrend(581, 550)).toBe('improving');
+      expect(PrivacyCreditEngine.calculateTrend(519, 550)).toBe('declining');
+    });
+
+    it('stays stable for a single 25-point violation drop', () => {
+      expect(PrivacyCreditEngine.calculateTrend(525, 550)).toBe('stable');
     });
   });
 });
