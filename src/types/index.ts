@@ -305,6 +305,8 @@ export interface TelemetryReport {
 export interface StorageData {
   privacyScore: PrivacyScore;
   creditScore?: CreditScoreResult;
+  // One entry per day (latest score that day), newest first. Used for the 7-day trend.
+  creditScoreHistory?: Array<{ date: string; score: number }>;
   dailyCreditMetrics?: DailyCreditMetrics[];
   alerts: Alert[];
   trackers: Record<string, TrackerData>;

@@ -117,16 +117,39 @@ export class PrivacyScoreManager {
     return Math.max(PRIVACY_SCORE.MIN, Math.min(PRIVACY_SCORE.MAX, Math.round(scaled)));
   }
 
+  // Score to compare against for the trend: the oldest score recorded before today
+  // within the last 7 days. No such entry (new install) means no trend yet.
+  private static getTrendBaseline(history?: Array<{ date: string; score: number }>): number | undefined {
+    if (!history || history.length === 0) return undefined;
+    const today = new Date().toISOString().split('T')[0];
+    const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const inWindow = history.filter(entry => entry.date < today && entry.date >= cutoff);
+    if (inWindow.length === 0) return undefined;
+    return inWindow.reduce((oldest, entry) => (entry.date < oldest.date ? entry : oldest)).score;
+  }
+
+  // Keep one entry per day (the latest score), 14 days, newest first.
+  private static recordScoreHistory(
+    history: Array<{ date: string; score: number }> | undefined,
+    score: number
+  ): Array<{ date: string; score: number }> {
+    const today = new Date().toISOString().split('T')[0];
+    const rest = (history ?? []).filter(entry => entry.date !== today);
+    return [{ date: today, score }, ...rest].slice(0, 14);
+  }
+
   static async updateCreditScore(): Promise<number> {
     const data = await Storage.get();
     const metrics = await Storage.getDailyCreditMetrics(CREDIT_SCORE.METRICS_RETENTION_DAYS);
     const previousScore = data.creditScore?.score;
     const scoringConfig = getScoringConfig();
-    const creditScore = PrivacyCreditEngine.calculateScore(metrics, previousScore, scoringConfig);
+    const trendBaseline = this.getTrendBaseline(data.creditScoreHistory);
+    const creditScore = PrivacyCreditEngine.calculateScore(metrics, trendBaseline, scoringConfig);
     const legacyOld = data.privacyScore.current;
     const legacyNew = this.legacyFromCredit(creditScore.score);
 
     data.creditScore = creditScore;
+    data.creditScoreHistory = this.recordScoreHistory(data.creditScoreHistory, creditScore.score);
     data.privacyScore.current = legacyNew;
 
     await Storage.save(data);

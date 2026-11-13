@@ -305,7 +305,7 @@ describe('PrivacyScoreManager', () => {
     });
 
     it('marks trend as improving when score increases significantly', async () => {
-      storageData.creditScore!.score = 400;
+      storageData.creditScoreHistory = [{ date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], score: 400 }];
       creditMetrics = [
         {
           date: '2026-01-05',
@@ -328,7 +328,7 @@ describe('PrivacyScoreManager', () => {
     });
 
     it('marks trend as declining when score drops significantly', async () => {
-      storageData.creditScore!.score = 700;
+      storageData.creditScoreHistory = [{ date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], score: 700 }];
       creditMetrics = [
         {
           date: '2026-01-06',
@@ -348,6 +348,56 @@ describe('PrivacyScoreManager', () => {
           creditScore: expect.objectContaining({ trend: 'declining' }),
         })
       );
+    });
+  });
+
+  describe('trend baseline', () => {
+    it('stays stable when there is no history older than today', async () => {
+      storageData.creditScore!.score = 700;
+      storageData.creditScoreHistory = [];
+      creditMetrics = [
+        {
+          date: '2026-01-06',
+          trackersBlocked: 0,
+          cleanSitesVisited: 0,
+          highRiskScore: 100,
+          postConsentViolations: 10,
+          protectionActiveMinutes: 0,
+        },
+      ];
+
+      await PrivacyScoreManager.updateCreditScore();
+
+      expect(broadcastMock).toHaveBeenCalledWith(
+        'CREDIT_SCORE_UPDATED',
+        expect.objectContaining({
+          creditScore: expect.objectContaining({ trend: 'stable' }),
+        })
+      );
+    });
+
+    it('ignores history older than 7 days', async () => {
+      storageData.creditScoreHistory = [{ date: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], score: 800 }];
+      creditMetrics = [];
+
+      await PrivacyScoreManager.updateCreditScore();
+
+      expect(broadcastMock).toHaveBeenCalledWith(
+        'CREDIT_SCORE_UPDATED',
+        expect.objectContaining({
+          creditScore: expect.objectContaining({ trend: 'stable' }),
+        })
+      );
+    });
+
+    it('records one history entry per day', async () => {
+      storageData.creditScoreHistory = [];
+      creditMetrics = [];
+
+      await PrivacyScoreManager.updateCreditScore();
+      await PrivacyScoreManager.updateCreditScore();
+
+      expect(storageData.creditScoreHistory).toHaveLength(1);
     });
   });
 
