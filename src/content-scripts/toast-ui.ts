@@ -73,6 +73,7 @@ function injectStyles(): void {
       box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.06);
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
       font-size: 13px;
+      line-height: 1.5;
       z-index: 2147483646;
       animation: pvSlideIn 0.3s ease-out;
       overflow: hidden;
@@ -80,7 +81,7 @@ function injectStyles(): void {
     #${TOAST_ID}.privaseer-dismissing {
       animation: pvSlideOut 0.25s ease-in forwards;
     }
-    #${TOAST_ID} * {
+    :where(#${TOAST_ID} *) {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
@@ -113,11 +114,13 @@ function injectStyles(): void {
       font-weight: 700;
       color: #fff;
       letter-spacing: -0.2px;
+      line-height: 1.3;
     }
     .pv-subtitle {
       font-size: 11px;
       color: #585b70;
-      margin-top: 2px;
+      margin-top: 3px;
+      line-height: 1.4;
     }
     .pv-badge {
       font-size: 10px;
@@ -126,6 +129,7 @@ function injectStyles(): void {
       border-radius: 20px;
       letter-spacing: 0.3px;
       text-transform: uppercase;
+      line-height: 1.4;
       flex-shrink: 0;
     }
     .pv-close {
@@ -155,7 +159,8 @@ function injectStyles(): void {
       font-size: 14px;
       font-weight: 700;
       color: #cdd6f4;
-      margin-bottom: 6px;
+      margin-bottom: 8px;
+      line-height: 1.4;
       display: flex;
       align-items: center;
       gap: 8px;
@@ -179,7 +184,8 @@ function injectStyles(): void {
     .pv-tip {
       font-size: 12px;
       color: #585b70;
-      padding: 8px 12px;
+      line-height: 1.5;
+      padding: 10px 12px;
       background: rgba(255, 255, 255, 0.03);
       border-radius: 8px;
       border-left: 3px solid;
@@ -188,6 +194,7 @@ function injectStyles(): void {
     /* ── Actions ── */
     .pv-actions {
       display: flex;
+      flex-wrap: wrap;
       gap: 8px;
       padding: 4px 20px 18px;
     }
@@ -197,6 +204,7 @@ function injectStyles(): void {
       border-radius: 10px;
       font-size: 12px;
       font-weight: 600;
+      line-height: 1.4;
       cursor: pointer;
       transition: all 0.15s;
       font-family: inherit;
@@ -286,6 +294,7 @@ function injectStyles(): void {
       font-size: 13px;
       font-weight: 600;
       color: #cdd6f4;
+      line-height: 1.4;
     }
     .pv-alt-desc {
       font-size: 11px;
