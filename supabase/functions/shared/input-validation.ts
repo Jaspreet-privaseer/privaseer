@@ -42,6 +42,14 @@ export function validateEmail(email: string): ValidationResult {
   return { valid: true, sanitized: trimmed.toLowerCase() };
 }
 
+const BURNER_DOMAIN = 'burner.privaseer.co.uk';
+
+// True for addresses on our own burner domain (including sub-domains)
+export function isBurnerDomainAddress(email: string): boolean {
+  const domain = email.trim().toLowerCase().split('@').pop() || '';
+  return domain === BURNER_DOMAIN || domain.endsWith(`.${BURNER_DOMAIN}`);
+}
+
 export function validateUUID(uuid: string): ValidationResult {
   if (!uuid || typeof uuid !== 'string') {
     return { valid: false, error: 'UUID is required and must be a string' };

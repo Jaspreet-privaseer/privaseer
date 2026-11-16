@@ -72,6 +72,17 @@ describe('handleVerificationRequest', () => {
     expect((await call(request({ action: 'send', realEmail: 'not an email' }))).status).toBe(400);
   });
 
+  it('rejects Privaseer burner addresses as the forwarding email', async () => {
+    for (const realEmail of ['verify@burner.privaseer.co.uk', 'Mika47@Burner.Privaseer.co.uk']) {
+      for (const action of ['send', 'confirm', 'status']) {
+        const res = await call(request({ action, realEmail, code: '123456' }));
+        expect(res.status).toBe(400);
+        expect((await res.json()).error).toMatch(/your own email/i);
+      }
+    }
+    expect(sendCodeEmail).not.toHaveBeenCalled();
+  });
+
   it('rejects display-name forms so the stored key matches the burner email record', async () => {
     const res = await call(request({ action: 'send', realEmail: 'Person <person@example.com>' }));
     expect(res.status).toBe(400);

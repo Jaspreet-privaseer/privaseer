@@ -4,7 +4,7 @@ import {
   isForwardingVerified,
   startVerification,
 } from "../shared/forwarding-verification.ts";
-import { validateEmail } from "../shared/input-validation.ts";
+import { validateEmail, isBurnerDomainAddress } from "../shared/input-validation.ts";
 import { maskEmail } from "../shared/log-redaction.ts";
 
 const corsHeaders = {
@@ -82,6 +82,12 @@ export async function handleVerificationRequest(req: Request, deps: Verification
     return json({ error: "Validation error", message: "A valid email address is required" }, 400);
   }
   const email: string = emailCheck.sanitized;
+  if (isBurnerDomainAddress(email)) {
+    return json(
+      { error: "Enter your own email address, not a Privaseer burner address.", message: "Burner addresses cannot be used as the forwarding email" },
+      400,
+    );
+  }
   const now = deps.now ? deps.now() : Date.now();
 
   if (body.action === "status") {
